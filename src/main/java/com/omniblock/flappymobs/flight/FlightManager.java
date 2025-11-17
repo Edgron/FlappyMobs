@@ -125,10 +125,11 @@ public class FlightManager {
         }
 
         if (flight.getWaypoints().isEmpty()) {
+            player.sendMessage("§cEste vuelo no tiene waypoints configurados.");
             return;
         }
 
-        // Spawn creature
+        // Spawn creature at player location
         Location spawnLoc = player.getLocation();
         Entity entity = player.getWorld().spawnEntity(spawnLoc, flight.getCreature());
 
@@ -147,6 +148,8 @@ public class FlightManager {
             creature.setAI(false);
             creature.setGravity(false);
             creature.setInvulnerable(flight.isInvulnerable());
+            creature.setSilent(true);
+            creature.setCollidable(false);
         }
 
         // Mount player
@@ -159,12 +162,14 @@ public class FlightManager {
         // Calculate movement for first waypoint
         calculateMovement(session);
 
-        // Start movement task
+        // Start movement task (every tick = 50ms)
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             moveCreature(session);
         }, 1L, 1L);
 
         session.setMovementTask(task);
+
+        player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_started"));
     }
 
     private void calculateMovement(FlightSession session) {
@@ -178,6 +183,7 @@ public class FlightManager {
         Location from = session.getCreature().getLocation();
         Location to = flight.getWaypoints().get(wpIndex).getAsLocation();
 
+        // Calculate distance
         double distX = to.getX() - from.getX();
         double distY = to.getY() - from.getY();
         double distZ = to.getZ() - from.getZ();
@@ -185,13 +191,25 @@ public class FlightManager {
         ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
         double speed = config != null ? config.getSpeed() : 1.0;
 
+        // Total 3D distance
         double distance = Math.sqrt(distX * distX + distY * distY + distZ * distZ);
-        double ticks = distance / speed;
+
+        // Calculate movement per tick based on speed (blocks per tick)
+        double blocksPerTick = speed * 0.1; // Reduced for smoother movement
+        double ticks = distance / blocksPerTick;
 
         if (ticks > 0) {
             session.setXPerTick(distX / ticks);
             session.setYPerTick(distY / ticks);
             session.setZPerTick(distZ / ticks);
+        } else {
+            session.setXPerTick(0);
+            session.setYPerTick(0);
+            session.setZPerTick(0);
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("Flight " + flight.getName() + " - WP " + wpIndex + " - Distance: " + distance + " - Ticks: " + ticks);
         }
     }
 
@@ -222,7 +240,7 @@ public class FlightManager {
 
         Location newLoc = new Location(currentLoc.getWorld(), newX, newY, newZ);
 
-        // Calculate yaw to face target
+        // Calculate yaw and pitch to face target
         Vector direction = targetLoc.toVector().subtract(currentLoc.toVector()).normalize();
         float yaw = (float) Math.toDegrees(Math.atan2(-direction.getX(), direction.getZ()));
         float pitch = (float) Math.toDegrees(Math.asin(-direction.getY()));
@@ -232,14 +250,18 @@ public class FlightManager {
 
         creature.teleport(newLoc);
 
-        // Check if reached waypoint
+        // Check if reached waypoint (with tolerance)
         double distX = Math.abs(currentLoc.getX() - targetLoc.getX());
         double distY = Math.abs(currentLoc.getY() - targetLoc.getY());
         double distZ = Math.abs(currentLoc.getZ() - targetLoc.getZ());
 
-        if (distX <= 3 && distY <= 5 && distZ <= 3) {
+        if (distX <= 2 && distY <= 3 && distZ <= 2) {
             session.setCurrentWaypointIndex(wpIndex + 1);
             calculateMovement(session);
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("Reached waypoint " + wpIndex + " for flight " + flight.getName());
+            }
         }
     }
 
@@ -257,7 +279,7 @@ public class FlightManager {
             creature.eject();
 
             // Apply parachute effect
-            if (completed && session.getFlight().getParachuteTime() > 0) {
+            if (session.getFlight().getParachuteTime() > 0) {
                 player.addPotionEffect(new PotionEffect(
                     PotionEffectType.SLOW_FALLING,
                     session.getFlight().getParachuteTime() * 20,
@@ -273,7 +295,7 @@ public class FlightManager {
         }
 
         if (completed) {
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_started"));
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_success"));
         }
     }
 
