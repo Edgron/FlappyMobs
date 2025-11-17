@@ -1,0 +1,71 @@
+# FlappyMobs Configuration
+
+# General Settings
+general:
+  # Language file (in lang folder)
+  language: "es"
+
+  # Default parachute duration in seconds (0 = permanent until ground)
+  parachute_time: 5
+
+  # Enable debug messages
+  debug: false
+
+# Creature Settings
+creatures:
+  ENDER_DRAGON:
+    enabled: true
+    scale: 1.0
+    speed: 1.5
+    health: 200.0
+    vulnerable: false
+  PHANTOM:
+    enabled: true
+    scale: 0.8
+    speed: 2.0
+    health: 20.0
+    vulnerable: true
+  GHAST:
+    enabled: true
+    scale: 1.2
+    speed: 1.0
+    health: 50.0
+    vulnerable: false
+  BLAZE:
+    enabled: true
+    scale: 0.6
+    speed: 1.8
+    health: 20.0
+    vulnerable: true
+  BEE:
+    enabled: true
+    scale: 1.5
+    speed: 1.5
+    health: 10.0
+    vulnerable: true
+  PARROT:
+    enabled: true
+    scale: 2.0
+    speed: 1.2
+    health: 6.0
+    vulnerable: true
+  VEX:
+    enabled: true
+    scale: 2.5
+    speed: 2.5
+    health: 14.0
+    vulnerable: true
+  ALLAY:
+    enabled: true
+    scale: 2.0
+    speed: 1.3
+    health: 20.0
+    vulnerable: true
+
+# Economy Settings
+economy:
+  enabled: true
+  currency_symbol: "$"
+
+# Flights are stored in flights.yml
+# This file is auto-generated when creating flights
