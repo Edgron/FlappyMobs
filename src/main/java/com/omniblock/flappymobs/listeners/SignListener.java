@@ -46,7 +46,7 @@ public class SignListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onSignInteract(PlayerInteractEvent e) {
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
@@ -56,11 +56,9 @@ public class SignListener implements Listener {
 
         Sign sign = (Sign) block.getState();
 
-        // Strip color codes and compare
         String line0 = ChatColor.stripColor(sign.getLine(0));
         if (line0 == null || line0.isEmpty()) return;
 
-        // Check if it's a FlappyMobs sign
         if (!line0.replace("[", "").replace("]", "").equalsIgnoreCase("FlappyMobs")) return;
 
         if (!e.getPlayer().hasPermission("fp.sign.use")) {
@@ -79,10 +77,9 @@ public class SignListener implements Listener {
             return;
         }
 
-        // Cancel the event to prevent sign editing
         e.setCancelled(true);
 
-        // Execute the flight command
-        e.getPlayer().performCommand("fp flight " + name);
+        // Start flight - payment is handled internally
+        plugin.getFlightManager().startFlight(e.getPlayer(), f);
     }
 }

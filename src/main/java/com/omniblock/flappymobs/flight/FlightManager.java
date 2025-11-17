@@ -4,7 +4,8 @@ import com.omniblock.flappymobs.FlappyMobs;
 import com.omniblock.flappymobs.config.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -37,6 +38,7 @@ public class FlightManager {
         FileConfiguration config = plugin.getConfigManager().getFlightsConfig();
 
         if (config.getConfigurationSection("flights") == null) {
+            plugin.getLogger().info("No flights configuration found.");
             return;
         }
 
@@ -60,6 +62,10 @@ public class FlightManager {
                 }
 
                 flights.put(flightName.toLowerCase(), flight);
+
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Loaded flight: " + flightName + " with " + flight.getWaypoints().size() + " waypoints");
+                }
             } catch (Exception e) {
                 plugin.getLogger().warning("Error loading flight: " + flightName);
                 e.printStackTrace();
@@ -120,21 +126,62 @@ public class FlightManager {
     }
 
     public void startFlight(Player player, Flight flight) {
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' for player " + player.getName());
+        }
+
         if (activeSessions.containsKey(player.getUniqueId())) {
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("already_riding"));
             return;
         }
 
         if (flight.getWaypoints().isEmpty()) {
-            player.sendMessage("§cEste vuelo no tiene waypoints configurados.");
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_generic"));
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
+            }
             return;
         }
 
-        // Spawn creature at player location
-        Location spawnLoc = player.getLocation();
-        Entity entity = player.getWorld().spawnEntity(spawnLoc, flight.getCreature());
+        // Check and charge cost
+        if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
+            if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
+                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
+                    "cost", plugin.getEconomyManager().formatAmount(flight.getCost())));
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds for flight");
+                }
+                return;
+            }
+
+            if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
+                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_economy"));
+                return;
+            }
+
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("payment_success", 
+                "cost", plugin.getEconomyManager().formatAmount(flight.getCost())));
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
+            }
+        }
+
+        // Teleport player to first waypoint
+        Waypoint firstWP = flight.getWaypoints().get(0);
+        Location startLoc = firstWP.getAsLocation();
+        player.teleport(startLoc);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Teleported player to first waypoint: " + startLoc);
+        }
+
+        // Spawn creature at first waypoint
+        Entity entity = player.getWorld().spawnEntity(startLoc, flight.getCreature());
 
         if (!(entity instanceof LivingEntity)) {
             entity.remove();
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_generic"));
             return;
         }
 
@@ -150,6 +197,24 @@ public class FlightManager {
             creature.setInvulnerable(flight.isInvulnerable());
             creature.setSilent(true);
             creature.setCollidable(false);
+
+            // Apply scale using attribute API
+            try {
+                AttributeInstance scaleAttr = creature.getAttribute(Attribute.GENERIC_SCALE);
+                if (scaleAttr != null) {
+                    scaleAttr.setBaseValue(config.getScale());
+                    if (plugin.getConfigManager().isDebugEnabled()) {
+                        plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
+                    }
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Could not set scale attribute (requires Minecraft 1.20.5+)");
+            }
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Creature config - Health: " + config.getHealth() + 
+                    ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale());
+            }
         }
 
         // Mount player
@@ -159,7 +224,8 @@ public class FlightManager {
         FlightSession session = new FlightSession(player, flight, creature);
         activeSessions.put(player.getUniqueId(), session);
 
-        // Calculate movement for first waypoint
+        // Start from waypoint 1 (we're already at 0)
+        session.setCurrentWaypointIndex(1);
         calculateMovement(session);
 
         // Start movement task (every tick = 50ms)
@@ -170,6 +236,10 @@ public class FlightManager {
         session.setMovementTask(task);
 
         player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_started"));
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
+        }
     }
 
     private void calculateMovement(FlightSession session) {
@@ -177,13 +247,15 @@ public class FlightManager {
         int wpIndex = session.getCurrentWaypointIndex();
 
         if (wpIndex >= flight.getWaypoints().size()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] No more waypoints. Ending flight.");
+            }
             return;
         }
 
         Location from = session.getCreature().getLocation();
         Location to = flight.getWaypoints().get(wpIndex).getAsLocation();
 
-        // Calculate distance
         double distX = to.getX() - from.getX();
         double distY = to.getY() - from.getY();
         double distZ = to.getZ() - from.getZ();
@@ -191,11 +263,8 @@ public class FlightManager {
         ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
         double speed = config != null ? config.getSpeed() : 1.0;
 
-        // Total 3D distance
         double distance = Math.sqrt(distX * distX + distY * distY + distZ * distZ);
-
-        // Calculate movement per tick based on speed (blocks per tick)
-        double blocksPerTick = speed * 0.1; // Reduced for smoother movement
+        double blocksPerTick = speed * 0.15;
         double ticks = distance / blocksPerTick;
 
         if (ticks > 0) {
@@ -209,7 +278,11 @@ public class FlightManager {
         }
 
         if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("Flight " + flight.getName() + " - WP " + wpIndex + " - Distance: " + distance + " - Ticks: " + ticks);
+            plugin.getLogger().info("[DEBUG] WP" + wpIndex + ": Distance=" + String.format("%.2f", distance) + 
+                " Ticks=" + String.format("%.0f", ticks) + 
+                " Speed=" + speed + 
+                " From=" + from.getBlockX() + "," + from.getBlockY() + "," + from.getBlockZ() +
+                " To=" + to.getBlockX() + "," + to.getBlockY() + "," + to.getBlockZ());
         }
     }
 
@@ -217,6 +290,9 @@ public class FlightManager {
         Entity creature = session.getCreature();
 
         if (!creature.isValid() || creature.getPassengers().isEmpty()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Creature invalid or no passengers. Ending flight.");
+            }
             endFlight(session.getPlayer(), false);
             return;
         }
@@ -225,6 +301,9 @@ public class FlightManager {
         int wpIndex = session.getCurrentWaypointIndex();
 
         if (wpIndex >= flight.getWaypoints().size()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Reached final waypoint. Completing flight.");
+            }
             endFlight(session.getPlayer(), true);
             return;
         }
@@ -233,35 +312,33 @@ public class FlightManager {
         Location currentLoc = creature.getLocation();
         Location targetLoc = target.getAsLocation();
 
-        // Move creature
         double newX = currentLoc.getX() + session.getXPerTick();
         double newY = currentLoc.getY() + session.getYPerTick();
         double newZ = currentLoc.getZ() + session.getZPerTick();
 
         Location newLoc = new Location(currentLoc.getWorld(), newX, newY, newZ);
 
-        // Calculate yaw and pitch to face target
-        Vector direction = targetLoc.toVector().subtract(currentLoc.toVector()).normalize();
-        float yaw = (float) Math.toDegrees(Math.atan2(-direction.getX(), direction.getZ()));
-        float pitch = (float) Math.toDegrees(Math.asin(-direction.getY()));
-
-        newLoc.setYaw(yaw);
-        newLoc.setPitch(pitch);
+        Vector direction = targetLoc.toVector().subtract(currentLoc.toVector());
+        if (direction.length() > 0) {
+            direction.normalize();
+            float yaw = (float) Math.toDegrees(Math.atan2(-direction.getX(), direction.getZ()));
+            float pitch = (float) Math.toDegrees(Math.asin(-direction.getY()));
+            newLoc.setYaw(yaw);
+            newLoc.setPitch(pitch);
+        }
 
         creature.teleport(newLoc);
 
-        // Check if reached waypoint (with tolerance)
         double distX = Math.abs(currentLoc.getX() - targetLoc.getX());
         double distY = Math.abs(currentLoc.getY() - targetLoc.getY());
         double distZ = Math.abs(currentLoc.getZ() - targetLoc.getZ());
 
-        if (distX <= 2 && distY <= 3 && distZ <= 2) {
+        if (distX <= 2.5 && distY <= 3.5 && distZ <= 2.5) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Reached WP" + wpIndex + " - Moving to next waypoint");
+            }
             session.setCurrentWaypointIndex(wpIndex + 1);
             calculateMovement(session);
-
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("Reached waypoint " + wpIndex + " for flight " + flight.getName());
-            }
         }
     }
 
@@ -278,7 +355,6 @@ public class FlightManager {
         if (creature.isValid()) {
             creature.eject();
 
-            // Apply parachute effect
             if (session.getFlight().getParachuteTime() > 0) {
                 player.addPotionEffect(new PotionEffect(
                     PotionEffectType.SLOW_FALLING,
@@ -287,7 +363,6 @@ public class FlightManager {
                     false,
                     false
                 ));
-
                 player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_activated"));
             }
 
@@ -296,6 +371,10 @@ public class FlightManager {
 
         if (completed) {
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_success"));
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Flight ended for " + player.getName() + " (completed=" + completed + ")");
         }
     }
 
@@ -317,7 +396,6 @@ public class FlightManager {
 
     public int removeRiderlessCreatures() {
         int count = 0;
-
         for (FlightSession session : new ArrayList<>(activeSessions.values())) {
             Entity creature = session.getCreature();
             if (creature.getPassengers().isEmpty()) {
@@ -325,7 +403,6 @@ public class FlightManager {
                 count++;
             }
         }
-
         return count;
     }
 }
