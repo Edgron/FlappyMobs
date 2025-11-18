@@ -945,3 +945,4 @@ public void onSignChange(SignChangeEvent event) {
             " L2=" + line2Color + " L3=" + line3Color);
     }
 }
+}
