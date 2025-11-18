@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Flight {
-
     private final String name;
     private EntityType creature;
     private double cost;
@@ -13,6 +12,7 @@ public class Flight {
     private int parachuteTime;
     private boolean allowEnderpearlInFlight;
     private boolean allowEnderpearlInParachute;
+    private boolean allowShiftDismount;
     private final List<Waypoint> waypoints;
 
     public Flight(String name, EntityType creature, double cost) {
@@ -23,9 +23,9 @@ public class Flight {
         this.parachuteTime = 5;
         this.allowEnderpearlInFlight = false;
         this.allowEnderpearlInParachute = false;
+        this.allowShiftDismount = true;
         this.waypoints = new ArrayList<>();
     }
-
     public String getName() { return name; }
     public EntityType getCreature() { return creature; }
     public void setCreature(EntityType creature) { this.creature = creature; }
@@ -39,13 +39,10 @@ public class Flight {
     public void setAllowEnderpearlInFlight(boolean allow) { this.allowEnderpearlInFlight = allow; }
     public boolean isAllowEnderpearlInParachute() { return allowEnderpearlInParachute; }
     public void setAllowEnderpearlInParachute(boolean allow) { this.allowEnderpearlInParachute = allow; }
-
+    public boolean isAllowShiftDismount() { return allowShiftDismount; }
+    public void setAllowShiftDismount(boolean allow) { this.allowShiftDismount = allow; }
     public List<Waypoint> getWaypoints() { return waypoints; }
     public void addWaypoint(Waypoint waypoint) { waypoints.add(waypoint); }
-    public void removeLastWaypoint() {
-        if (!waypoints.isEmpty()) {
-            waypoints.remove(waypoints.size() - 1);
-        }
-    }
+    public void removeLastWaypoint() { if (!waypoints.isEmpty()) { waypoints.remove(waypoints.size() - 1); } }
     public void clearWaypoints() { waypoints.clear(); }
 }
