@@ -1,9 +1,9 @@
 name: FlappyMobs
 version: '${project.version}'
 main: com.omniblock.flappymobs.FlappyMobs
-api-version: '1.20'
+api-version: '1.21'
 authors: [Omniblock]
-description: Advanced flying creature transport system
+description: Advanced flying creature transport system for Minecraft 1.21+
 website: https://omniblock.net
 softdepend: [Vault]
 

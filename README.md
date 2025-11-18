@@ -1,61 +1,84 @@
 # 🐉 FlappyMobs
 
-Sistema avanzado de vuelos con criaturas para Minecraft 1.20.1+/Paper 1.20.1.
+Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+**.
 
 ## ✨ Características
 - Rutas con waypoints personalizables
-- 8 criaturas voladoras seleccionables
-- Paracaídas configurable al desmontar o destruir el mob
+- 8 criaturas voladoras con **scale completamente funcional**
+- Paracaídas configurable al desmontar
 - Economía Vault integrada
 - Carteles `[FlappyMobs]` para vuelos automatizados
 - Comandos intuitivos de crear/editar/eliminar vuelos
+- Debug mode completo
 
-## 📦 Instalación
-1. Compila usando `mvn clean package` (Java 17+)
-2. Sube `FlappyMobs-*.jar` a `plugins/` en tu Paper 1.20.1
-3. Reinicia el servidor
+## 📦 Requisitos
+- **Paper 1.21.10+** (o superior)
+- Java 21
+- Vault (opcional, para economía)
+
+## 🆕 Novedades Paper 1.21+
+- ✅ **GENERIC_SCALE**: Todas las criaturas pueden cambiar de tamaño
+- ✅ Mejor rendimiento y estabilidad
+- ✅ API mejorada para attributes
+
+## 🔧 Instalación
+1. Descarga Paper 1.21.10 de https://papermc.io/downloads/paper
+2. Compila el plugin: `mvn clean package` (requiere Java 21)
+3. Sube `FlappyMobs-*.jar` a `plugins/`
+4. Reinicia el servidor
 
 ## ⚙️ Configuración
-Edita `config.yml` y `flights.yml` para definir criaturas, rutas, economía y permisos.
+Edita `config.yml` y `flights.yml`. Activa debug para ver logs detallados:
+
+```yaml
+general:
+  debug: true
+```
 
 ## 🎮 Comandos
 
-#### Comandos jugadores
-| Comando                 | Descripción                                |
-|-------------------------|--------------------------------------------|
-| `/fp flight <nombre>`   | Inicia un vuelo en la ruta especificada    |
-| `/fp dismount`          | Desmonta de la criatura                    |
-| `/fp list`              | Muestra todos los vuelos disponibles       |
-| `/fp info <nombre>`     | Ver detalles de un vuelo                   |
-
-#### Comandos admins
+### Jugadores
 | Comando | Descripción |
 |---------|------------|
-| `/fp create <nombre> <mob> [costo]` | Inicia la creación de un vuelo nuevo |
-| `/fp setwp`      | Añade waypoint donde estés en el modo creación |
-| `/fp remlastwp`  | Quita el último waypoint añadido              |
-| `/fp save`       | Guarda el vuelo creado y sale del modo edición|
-| `/fp cancel`     | Cancela completamente la creación             |
-| `/fp delete <nombre>` | Elimina un vuelo guardado                  |
-| `/fp edit <nombre> <propiedad> <valor>` | Edita una propiedad del vuelo     |
-| `/fp removemobs` | Elimina todas las criaturas sin jugador       |
-| `/fp reload`     | Recarga la configuración                     |
+| `/fp flight <nombre>` | Inicia un vuelo |
+| `/fp dismount` | Desmonta de la criatura |
+| `/fp list` | Lista vuelos disponibles |
+| `/fp info <nombre>` | Ver detalles del vuelo |
 
-#### Carteles interactivoss
-- Pon `[FlappyMobs]` en la primera línea, y el nombre del vuelo en la segunda.
-- Haz click derecho para viajar o ver el destino/costo en el cartel.
+### Administradores
+| Comando | Descripción |
+|---------|------------|
+| `/fp create <nombre> <mob> [costo]` | Crea un nuevo vuelo |
+| `/fp setwp` | Añade waypoint |
+| `/fp save` | Guarda el vuelo |
+| `/fp delete <nombre>` | Elimina un vuelo |
+| `/fp edit <nombre> <propiedad> <valor>` | Edita propiedades |
+| `/fp removemobs` | Limpia criaturas sin jinete |
+| `/fp reload` | Recarga configuración |
 
-## 🦅 Lista de criaturas
-- ENDER_DRAGON
-- PHANTOM
-- GHAST
-- BLAZE
-- BEE
-- PARROT
-- VEX
-- ALLAY
+### Carteles
+Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
+
+## 🦅 Criaturas con Scale
+Todas funcionan con Paper 1.21+:
+- ENDER_DRAGON ✓
+- PHANTOM ✓
+- GHAST ✓
+- BLAZE ✓
+- BEE ✓
+- PARROT ✓
+- VEX ✓
+- ALLAY ✓
 
 ## 📝 Notas
-- Los permisos de comandos y carteles están definidos en `plugin.yml`
-- Paracaídas configurable por vuelo y global en config.yml
-- Lectura detallada de cada comando en el readme original
+- Requiere **Paper 1.21.10+** para scale completo
+- Vault opcional para economía
+- Debug mode muestra tracking detallado de movimiento
+
+## 🔗 Enlaces
+- Paper: https://papermc.io/
+- Vault: https://www.spigotmc.org/resources/vault.34315/
+
+---
+
+**Versión**: 1.0.0 | **API**: Paper 1.21.3 | **Java**: 21

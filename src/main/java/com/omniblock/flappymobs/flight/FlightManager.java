@@ -198,17 +198,13 @@ public class FlightManager {
             creature.setSilent(true);
             creature.setCollidable(false);
 
-            // Apply scale using attribute API
-            try {
-                AttributeInstance scaleAttr = creature.getAttribute(Attribute.GENERIC_SCALE);
-                if (scaleAttr != null) {
-                    scaleAttr.setBaseValue(config.getScale());
-                    if (plugin.getConfigManager().isDebugEnabled()) {
-                        plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
-                    }
+            // Apply scale using GENERIC_SCALE attribute (Paper 1.21+)
+            AttributeInstance scaleAttr = creature.getAttribute(Attribute.GENERIC_SCALE);
+            if (scaleAttr != null) {
+                scaleAttr.setBaseValue(config.getScale());
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
                 }
-            } catch (Exception e) {
-                plugin.getLogger().warning("Could not set scale attribute (requires Minecraft 1.20.5+)");
             }
 
             if (plugin.getConfigManager().isDebugEnabled()) {
