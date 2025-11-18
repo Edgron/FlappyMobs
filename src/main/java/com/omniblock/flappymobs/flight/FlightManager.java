@@ -198,13 +198,16 @@ public class FlightManager {
             creature.setSilent(true);
             creature.setCollidable(false);
 
-            // Apply scale using GENERIC_SCALE attribute (Paper 1.21+)
-            AttributeInstance scaleAttr = creature.getAttribute(Attribute.GENERIC_SCALE);
+            // Apply scale using Attribute.SCALE (Paper 1.21+)
+            // Note: In 1.21.4+ the "generic." prefix was removed
+            AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
             if (scaleAttr != null) {
                 scaleAttr.setBaseValue(config.getScale());
                 if (plugin.getConfigManager().isDebugEnabled()) {
                     plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
                 }
+            } else if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().warning("[DEBUG] SCALE attribute not available for " + flight.getCreature());
             }
 
             if (plugin.getConfigManager().isDebugEnabled()) {
