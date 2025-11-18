@@ -62,6 +62,14 @@ public class ConfigManager {
         return plugin.getConfig().getString("economy.currency_symbol", "$");
     }
 
+    public double getParachuteChickenHealth() {
+        return plugin.getConfig().getDouble("parachute.chicken_health", 10.0);
+    }
+
+    public double getParachuteChickenScale() {
+        return plugin.getConfig().getDouble("parachute.chicken_scale", 1.5);
+    }
+
     public boolean isCreatureEnabled(EntityType type) {
         return plugin.getConfig().getBoolean("creatures." + type.name() + ".enabled", false);
     }
@@ -76,8 +84,9 @@ public class ConfigManager {
         double speed = plugin.getConfig().getDouble(path + ".speed", 1.0);
         double health = plugin.getConfig().getDouble(path + ".health", 20.0);
         boolean vulnerable = plugin.getConfig().getBoolean(path + ".vulnerable", true);
+        boolean silent = plugin.getConfig().getBoolean(path + ".silent", true);
 
-        return new CreatureConfig(scale, speed, health, vulnerable);
+        return new CreatureConfig(scale, speed, health, vulnerable, silent);
     }
 
     public SoundConfig getSoundConfig(String type) {
@@ -100,18 +109,21 @@ public class ConfigManager {
         private final double speed;
         private final double health;
         private final boolean vulnerable;
+        private final boolean silent;
 
-        public CreatureConfig(double scale, double speed, double health, boolean vulnerable) {
+        public CreatureConfig(double scale, double speed, double health, boolean vulnerable, boolean silent) {
             this.scale = scale;
             this.speed = speed;
             this.health = health;
             this.vulnerable = vulnerable;
+            this.silent = silent;
         }
 
         public double getScale() { return scale; }
         public double getSpeed() { return speed; }
         public double getHealth() { return health; }
         public boolean isVulnerable() { return vulnerable; }
+        public boolean isSilent() { return silent; }
     }
 
     public static class SoundConfig {

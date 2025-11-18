@@ -11,6 +11,7 @@ error_economy: "&cError al procesar el pago. Sistema de economía no disponible.
 # Flight Messages
 flight_started: "&aVuelo iniciado. ¡Disfruta el viaje!"
 flight_not_found: "&cEl vuelo &e{flight} &cno existe."
+flight_dismounted: "&eHas saltado de la criatura."
 already_riding: "&cYa estás montando en una criatura."
 not_riding: "&cNo estás montando en ninguna criatura."
 insufficient_funds: "&cNo tienes suficiente dinero. Necesitas: &e{cost}"
@@ -19,9 +20,13 @@ payment_success: "&aPagado: &e{cost}"
 # Parachute
 parachute_activated: "&aParacaídas desplegado. Descenso seguro activado."
 parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"
+parachute_cancelled: "&eParacaídas desactivado manualmente."
+
+# Dismount Confirmation
+dismount_confirm: "&e¿Seguro que quieres saltar? Pulsa SHIFT de nuevo en 3 segundos."
 
 # Dismount
-dismount_success: "&aHas desmontado correctamente."
+dismount_success: "&aHas aterrizado correctamente en el destino."
 
 # List Command
 list_header: "&6=== Vuelos Disponibles ==="

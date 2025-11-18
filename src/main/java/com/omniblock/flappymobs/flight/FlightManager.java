@@ -2,24 +2,16 @@ package com.omniblock.flappymobs.flight;
 
 import com.omniblock.flappymobs.FlappyMobs;
 import com.omniblock.flappymobs.config.ConfigManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Chicken;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -34,6 +26,7 @@ public class FlightManager implements Listener {
     private final Map<UUID, FlightSession> activeSessions;
     private final Map<UUID, Flight> creatingFlights;
     private final Map<UUID, ParachuteData> activeParachutes;
+    private final Map<UUID, Long> dismountConfirmations;
 
     public FlightManager(FlappyMobs plugin) {
         this.plugin = plugin;
@@ -41,9 +34,9 @@ public class FlightManager implements Listener {
         this.activeSessions = new HashMap<>();
         this.creatingFlights = new HashMap<>();
         this.activeParachutes = new HashMap<>();
+        this.dismountConfirmations = new HashMap<>();
         loadFlights();
 
-        // Register listener for parachute damage
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -107,20 +100,17 @@ public class FlightManager implements Listener {
         }
 
         plugin.getLogger().info("Loaded " + flights.size() + " flights.");
-
-        // Update all signs with new flight data
         updateAllSigns();
     }
 
     private void updateAllSigns() {
-        // This will be called after reload to update all signs
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             for (World world : plugin.getServer().getWorlds()) {
                 for (Chunk chunk : world.getLoadedChunks()) {
                     for (BlockState tile : chunk.getTileEntities()) {
                         if (tile instanceof org.bukkit.block.Sign) {
                             org.bukkit.block.Sign sign = (org.bukkit.block.Sign) tile;
-                            String line0 = org.bukkit.ChatColor.stripColor(sign.getLine(0));
+                            String line0 = ChatColor.stripColor(sign.getLine(0));
                             if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase("FlappyMobs")) {
                                 String flightName = sign.getLine(1);
                                 Flight flight = getFlight(flightName);
@@ -239,6 +229,9 @@ public class FlightManager implements Listener {
         // Play start sound
         playSound(player, player.getLocation(), "start");
 
+        // Spawn GUST particle at player's feet
+        player.getWorld().spawnParticle(Particle.GUST, player.getLocation(), 1);
+
         // Teleport player to first waypoint
         Waypoint firstWP = flight.getWaypoints().get(0);
         Location startLoc = firstWP.getAsLocation();
@@ -267,10 +260,10 @@ public class FlightManager implements Listener {
             creature.setAI(false);
             creature.setGravity(false);
             creature.setInvulnerable(flight.isInvulnerable());
-            creature.setSilent(true);
+            creature.setSilent(config.isSilent());
             creature.setCollidable(false);
 
-            // Apply scale using Attribute.SCALE (Paper 1.21+)
+            // Apply scale
             AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
             if (scaleAttr != null) {
                 scaleAttr.setBaseValue(config.getScale());
@@ -281,22 +274,18 @@ public class FlightManager implements Listener {
 
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Creature config - Health: " + config.getHealth() + 
-                    ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale());
+                    ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale() + ", Silent: " + config.isSilent());
             }
         }
 
-        // Mount player
         creature.addPassenger(player);
 
-        // Create session
         FlightSession session = new FlightSession(player, flight, creature);
         activeSessions.put(player.getUniqueId(), session);
 
-        // Start from waypoint 1 (we're already at 0)
         session.setCurrentWaypointIndex(1);
         calculateMovement(session);
 
-        // Start movement task (every tick = 50ms)
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             moveCreature(session);
         }, 1L, 1L);
@@ -380,9 +369,20 @@ public class FlightManager implements Listener {
         Location currentLoc = creature.getLocation();
         Location targetLoc = target.getAsLocation();
 
+        // Check if it's the last waypoint
+        boolean isLastWaypoint = (wpIndex == flight.getWaypoints().size() - 1);
+
         double newX = currentLoc.getX() + session.getXPerTick();
         double newY = currentLoc.getY() + session.getYPerTick();
         double newZ = currentLoc.getZ() + session.getZPerTick();
+
+        // For last waypoint, respect exact Y coordinate
+        if (isLastWaypoint) {
+            double distToTarget = currentLoc.distance(targetLoc);
+            if (distToTarget < 1.5) {
+                newY = targetLoc.getY();
+            }
+        }
 
         Location newLoc = new Location(currentLoc.getWorld(), newX, newY, newZ);
 
@@ -401,8 +401,6 @@ public class FlightManager implements Listener {
         double distY = Math.abs(currentLoc.getY() - targetLoc.getY());
         double distZ = Math.abs(currentLoc.getZ() - targetLoc.getZ());
 
-        // Check if it's the last waypoint - use stricter tolerance
-        boolean isLastWaypoint = (wpIndex == flight.getWaypoints().size() - 1);
         double tolerance = isLastWaypoint ? 1.0 : 2.5;
         double toleranceY = isLastWaypoint ? 1.0 : 3.5;
 
@@ -428,10 +426,12 @@ public class FlightManager implements Listener {
         if (creature.isValid()) {
             creature.eject();
 
-            // Deploy parachute
-            int parachuteTime = session.getFlight().getParachuteTime();
-            if (parachuteTime >= 0) {
-                deployParachute(player, parachuteTime);
+            // Deploy parachute only if NOT completed (not at last waypoint)
+            if (!completed) {
+                int parachuteTime = session.getFlight().getParachuteTime();
+                if (parachuteTime >= 0) {
+                    deployParachute(player, parachuteTime);
+                }
             }
 
             creature.remove();
@@ -447,51 +447,45 @@ public class FlightManager implements Listener {
     }
 
     private void deployParachute(Player player, int duration) {
-        // Remove existing parachute if any
         removeParachute(player);
 
-        // Play deployment sound
         playSound(player, player.getLocation(), "parachute_deploy");
 
-        // Spawn chicken parachute
         Location chickenLoc = player.getLocation().add(0, 2, 0);
         Chicken chicken = (Chicken) player.getWorld().spawnEntity(chickenLoc, EntityType.CHICKEN);
 
-        // Configure chicken
         chicken.setAI(false);
         chicken.setGravity(false);
         chicken.setSilent(true);
         chicken.setInvulnerable(false);
-        chicken.setMaxHealth(10.0);
-        chicken.setHealth(10.0);
+
+        double chickenHealth = plugin.getConfigManager().getParachuteChickenHealth();
+        double chickenScale = plugin.getConfigManager().getParachuteChickenScale();
+
+        chicken.setMaxHealth(chickenHealth);
+        chicken.setHealth(chickenHealth);
         chicken.setCollidable(true);
 
-        // Set scale
         AttributeInstance scaleAttr = chicken.getAttribute(Attribute.SCALE);
         if (scaleAttr != null) {
-            scaleAttr.setBaseValue(2.0);
+            scaleAttr.setBaseValue(chickenScale);
         }
 
-        // Make player ride chicken (chicken on player's head)
         player.addPassenger(chicken);
 
-        // Apply slow falling effect
         int effectDuration = duration == 0 ? Integer.MAX_VALUE : duration * 20;
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, effectDuration, 0, false, false));
 
-        // Start descent sound loop
         BukkitTask soundTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!player.isOnGround() && activeParachutes.containsKey(player.getUniqueId())) {
+            if (!player.isOnGround() && !isInWater(player) && activeParachutes.containsKey(player.getUniqueId())) {
                 playSound(player, player.getLocation(), "parachute_descent");
             }
         }, 0L, 20L);
 
-        // Store parachute data
         ParachuteData data = new ParachuteData(player, chicken, soundTask, duration);
         activeParachutes.put(player.getUniqueId(), data);
 
-        // Start parachute check task
-        BukkitTask checkTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             checkParachute(player);
         }, 1L, 1L);
 
@@ -503,20 +497,24 @@ public class FlightManager implements Listener {
         }
     }
 
+    private boolean isInWater(Player player) {
+        Material blockType = player.getLocation().getBlock().getType();
+        return blockType == Material.WATER || blockType == Material.BUBBLE_COLUMN;
+    }
+
     private void checkParachute(Player player) {
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data == null) return;
 
-        // Check if player is on ground
-        if (player.isOnGround()) {
+        // Check if player is on ground OR in water
+        if (player.isOnGround() || isInWater(player)) {
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground - removing parachute");
+                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground/water - removing parachute");
             }
             removeParachute(player);
             return;
         }
 
-        // Check if chicken is still valid
         if (!data.getChicken().isValid() || data.getChicken().isDead()) {
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Parachute chicken destroyed for " + player.getName());
@@ -525,12 +523,10 @@ public class FlightManager implements Listener {
             return;
         }
 
-        // Update chicken position to stay on player's head
         if (!player.getPassengers().contains(data.getChicken())) {
             player.addPassenger(data.getChicken());
         }
 
-        // Check duration (only if not unlimited)
         if (data.getDuration() > 0) {
             data.decrementDuration();
             if (data.getDuration() <= 0) {
@@ -546,17 +542,19 @@ public class FlightManager implements Listener {
         ParachuteData data = activeParachutes.remove(player.getUniqueId());
         if (data == null) return;
 
-        // Stop sounds
+        // Stop sound explicitly
+        player.stopSound(Sound.ITEM_ELYTRA_FLYING, SoundCategory.MASTER);
+
         if (data.getSoundTask() != null) {
             data.getSoundTask().cancel();
         }
 
-        // Remove chicken
         if (data.getChicken().isValid()) {
+            // Spawn POOF particles
+            data.getChicken().getWorld().spawnParticle(Particle.POOF, data.getChicken().getLocation(), 5, 0.3, 0.3, 0.3, 0.02);
             data.getChicken().remove();
         }
 
-        // Remove slow falling effect
         player.removePotionEffect(PotionEffectType.SLOW_FALLING);
     }
 
@@ -566,7 +564,6 @@ public class FlightManager implements Listener {
 
         Chicken chicken = (Chicken) event.getEntity();
 
-        // Check if this is a parachute chicken
         for (Map.Entry<UUID, ParachuteData> entry : activeParachutes.entrySet()) {
             if (entry.getValue().getChicken().equals(chicken)) {
                 Player player = entry.getValue().getPlayer();
@@ -575,13 +572,43 @@ public class FlightManager implements Listener {
                         " - Damage: " + event.getDamage() + " - Health: " + chicken.getHealth());
                 }
 
-                // If chicken would die, remove parachute
                 if (chicken.getHealth() - event.getDamage() <= 0) {
                     removeParachute(player);
                     player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_destroyed"));
                 }
                 break;
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerSneak(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+
+        if (!event.isSneaking()) return;
+
+        // Check if player is in parachute
+        if (activeParachutes.containsKey(player.getUniqueId())) {
+            removeParachute(player);
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+            return;
+        }
+
+        // Check if player is in flight
+        if (!activeSessions.containsKey(player.getUniqueId())) return;
+
+        long currentTime = System.currentTimeMillis();
+        Long lastConfirm = dismountConfirmations.get(player.getUniqueId());
+
+        if (lastConfirm != null && (currentTime - lastConfirm) <= 3000) {
+            // Second shift press within 3 seconds - dismount
+            dismountConfirmations.remove(player.getUniqueId());
+            endFlight(player, false);
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_dismounted"));
+        } else {
+            // First shift press - ask for confirmation
+            dismountConfirmations.put(player.getUniqueId(), currentTime);
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_confirm"));
         }
     }
 
@@ -603,14 +630,12 @@ public class FlightManager implements Listener {
     }
 
     public void cleanup() {
-        // End all flights
         for (FlightSession session : new ArrayList<>(activeSessions.values())) {
             endFlight(session.getPlayer(), false);
         }
         activeSessions.clear();
         creatingFlights.clear();
 
-        // Remove all parachutes
         for (UUID uuid : new ArrayList<>(activeParachutes.keySet())) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
@@ -618,6 +643,7 @@ public class FlightManager implements Listener {
             }
         }
         activeParachutes.clear();
+        dismountConfirmations.clear();
     }
 
     public void reload() {
