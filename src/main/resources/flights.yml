@@ -1,17 +1,25 @@
-flights:
-  test:
-    creature: PHANTOM
-    cost: 10
-    invulnerable: true
-    parachute: 5
-    allow_enderpearl_in_flight: false
-    allow_enderpearl_in_parachute: false
-    allow_shift_dismount: true
-    waypoints:
-      - "world,-128,67,-516"
-      - "world,-136,74,-520"
-      - "world,-147,79,-521"
-      - "world,-161,85,-520"
-      - "world,-171,89,-520"
-      - "world,-183,75,-482"
-      - "world,-182,71,-475"
+# FlappyMobs Flights Configuration
+# Each flight is configured with the following properties:
+# - creature: Entity type (PHANTOM, GHAST, BLAZE, BEE, PARROT, VEX, ALLAY, BREEZE)
+# - cost: Price to use the flight (requires economy plugin)
+# - invulnerable: Whether the creature can be damaged
+# - parachute: Parachute duration in seconds (0 = until ground)
+# - allow_enderpearl_in_flight: Allow ender pearls during flight
+# - allow_enderpearl_in_parachute: Allow ender pearls during parachute descent
+# - allow_shift_dismount: Allow player to dismount with SHIFT key
+# - waypoints: List of coordinates (world,x,y,z)
+
+flights: {}
+# Example flight:
+#  example_flight:
+#    creature: PHANTOM
+#    cost: 100.0
+#    invulnerable: true
+#    parachute: 5
+#    allow_enderpearl_in_flight: false
+#    allow_enderpearl_in_parachute: false
+#    allow_shift_dismount: true
+#    waypoints:
+#      - "world,100,70,200"
+#      - "world,150,80,250"
+#      - "world,200,65,300"
