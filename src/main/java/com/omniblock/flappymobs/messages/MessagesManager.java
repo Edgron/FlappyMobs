@@ -38,7 +38,15 @@ public class MessagesManager {
      * @return true if message is enabled, false if disabled or not found
      */
     private boolean isMessageEnabled(String key) {
-        return plugin.getConfig().getBoolean("messages." + key, true);
+        // Reload config to get latest values
+        plugin.reloadConfig();
+        boolean enabled = plugin.getConfig().getBoolean("messages." + key, true);
+
+        if (plugin.getConfig().getBoolean("general.debug", false)) {
+            plugin.getLogger().info("[DEBUG] Message '" + key + "' enabled: " + enabled);
+        }
+
+        return enabled;
     }
 
     public String getMessage(String key) {
@@ -49,6 +57,9 @@ public class MessagesManager {
     public String getPrefixedMessage(String key) {
         // Check if message is enabled in config
         if (!isMessageEnabled(key)) {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Message '" + key + "' is disabled, not sending");
+            }
             return null;
         }
 
@@ -67,6 +78,9 @@ public class MessagesManager {
     public String getPrefixedMessage(String key, String... replacements) {
         // Check if message is enabled in config
         if (!isMessageEnabled(key)) {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Message '" + key + "' is disabled, not sending");
+            }
             return null;
         }
 

@@ -1,73 +1,84 @@
-# FlappyMobs - Spanish Messages
+# Spanish Messages for FlappyMobs
 
-prefix: "&8[&6FlappyMobs&8]&r "
+prefix: "&8[&6FlappyMobs&8] &r"
 
-# General Messages
+# General
+player_only: "&cEste comando solo puede ser ejecutado por jugadores."
 no_permission: "&cNo tienes permiso para hacer esto."
-player_only: "&cEste comando solo puede ser usado por jugadores."
-reload_success: "&aConfiguración recargada correctamente."
-invalid_creature: "&cCriatura inválida. Usa: ENDER_DRAGON, PHANTOM, GHAST, BLAZE, BEE, PARROT, VEX, ALLAY"
-creature_disabled: "&cEsta criatura está deshabilitada en la configuración."
+error_generic: "&cHa ocurrido un error. Contacta con un administrador."
+error_economy: "&cError al procesar el pago. Sistema de economía no disponible."
 
 # Flight Messages
-flight_started: "&a¡Vuelo iniciado! Disfruta del viaje."
-flight_not_found: "&cVuelo '&e{flight}&c' no encontrado."
-already_riding: "&cYa estás montado en una criatura."
-not_riding: "&cNo estás montado en ninguna criatura."
-dismount_success: "&aHas desmontado de la criatura."
-parachute_activated: "&a¡Paracaídas activado! Aterrizaje seguro."
-insufficient_funds: "&cNo tienes suficiente dinero. Necesitas &e{cost}&c."
-payment_success: "&aPagado &e{cost}&a por el vuelo."
+flight_started: "&aVuelo iniciado. ¡Disfruta el viaje!"
+flight_not_found: "&cEl vuelo &e{flight} &cno existe."
+flight_dismounted: "&eHas desmontado de la criatura."
+already_riding: "&cYa estás montando en una criatura."
+not_riding: "&cNo estás montando en ninguna criatura."
+insufficient_funds: "&cNo tienes suficiente dinero. Necesitas: &e{cost}"
+payment_success: "&aPagado: &e{cost}"
 
-# Creation Messages
+# Parachute
+parachute_activated: "&aParacaídas desplegado. Descenso seguro activado."
+parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"
+parachute_cancelled: "&eParacaídas desactivado."
+
+# Dismount
+dismount_success: "&aHas aterrizado correctamente en el destino."
+
+# Enderpearl
+enderpearl_disabled_flight: "&cNo puedes usar enderpearls durante este vuelo."
+enderpearl_disabled_parachute: "&cNo puedes usar enderpearls durante el descenso en paracaídas."
+
+# List Command
+list_header: "&6=== Vuelos Disponibles ==="
+list_empty: "&7No hay vuelos disponibles."
+list_entry: "&e{flight} &7- &f{creature} &7- &a{cost}"
+list_footer: "&7Usa /fp flight <nombre> para iniciar un vuelo."
+
+# Info Command
+info_header: "&6=== Información del Vuelo ==="
+info_name: "&eNombre: &f{flight}"
+info_creature: "&eCriatura: &f{creature}"
+info_cost: "&eCosto: &f{cost}"
+info_waypoints: "&eWaypoints: &f{waypoints}"
+info_invulnerable: "&eInvulnerable: &f{invulnerable}"
+info_parachute: "&eParacaídas: &f{parachute}s"
+info_enderpearl_flight: "&eEnderpearl en vuelo: &f{value}"
+info_enderpearl_parachute: "&eEnderpearl en paracaídas: &f{value}"
+info_footer: "&7Usa /fp flight {flight} para iniciar este vuelo."
+
+# Create/Edit Commands
 create_usage: "&cUso: /fp create <nombre> <criatura> [costo]"
-create_started: "&aVuelo '&e{flight}&a' creado. Usa &e/fp setwp&a para añadir waypoints."
+create_started: "&aCreando vuelo: &e{flight}&a. Usa /fp setwp para añadir waypoints."
 create_exists: "&cYa existe un vuelo con ese nombre."
-save_success: "&aVuelo '&e{flight}&a' guardado con &e{waypoints}&a waypoints."
-save_no_flight: "&cNo estás creando ningún vuelo."
-save_no_waypoints: "&cDebes añadir al menos 2 waypoints antes de guardar."
-cancel_success: "&aCreación de vuelo cancelada."
-waypoint_added: "&aWaypoint &e#{number}&a añadido en tu posición actual."
-waypoint_removed: "&aÚltimo waypoint eliminado."
+invalid_creature: "&cCriatura inválida o no habilitada."
+creature_disabled: "&cEsa criatura está deshabilitada en la configuración."
+
+waypoint_added: "&aWaypoint #{number} añadido en tu posición actual."
+waypoint_removed: "&cÚltimo waypoint eliminado."
 waypoint_none_to_remove: "&cNo hay waypoints para eliminar."
 
-# Delete Messages
+save_no_flight: "&cNo estás creando ningún vuelo."
+save_no_waypoints: "&cNecesitas al menos 2 waypoints para guardar el vuelo."
+save_success: "&aVuelo &e{flight} &aguardado con &e{waypoints} &awaypoints."
+
+cancel_success: "&cCreación de vuelo cancelada."
+
+# Delete Command
 delete_usage: "&cUso: /fp delete <nombre>"
-delete_success: "&aVuelo '&e{flight}&a' eliminado correctamente."
+delete_success: "&aVuelo &e{flight} &aeliminado correctamente."
 
-# Edit Messages
-edit_usage: "&cUso: /fp edit <nombre> <propiedad> <valor>"
-edit_success: "&aPropiedad '&e{property}&a' del vuelo '&e{flight}&a' actualizada a '&e{value}&a'."
-edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute"
-edit_invalid_value: "&cValor inválido para la propiedad '&e{property}&c'."
+# Edit Command
+edit_usage: "&cUso: /fp edit <flight> <property> <value>"
+edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute, enderpearl_flight, enderpearl_parachute"
+edit_invalid_value: "&cValor inválido para la propiedad &e{property}&c."
+edit_success: "&aPropiedad &e{property} &adel vuelo &e{flight} &aactualizada a: &f{value}"
 
-# List Messages
-list_header: "&8&m          &r &6Vuelos Disponibles &8&m          &r"
-list_entry: "&e{flight} &8- &7{creature} &8(&e{cost}&8)"
-list_empty: "&cNo hay vuelos disponibles."
-list_footer: "&8&m                                    &r"
+# Other Commands
+removemobs_success: "&aEliminadas &e{count} &acriaturas sin jinete."
+reload_success: "&aConfiguración recargada correctamente."
 
-# Info Messages
-info_usage: "&cUso: /fp info <nombre>"
-info_header: "&8&m     &r &6Información del Vuelo &8&m     &r"
-info_name: "&7Nombre: &e{flight}"
-info_creature: "&7Criatura: &e{creature}"
-info_cost: "&7Costo: &e{cost}"
-info_waypoints: "&7Waypoints: &e{waypoints}"
-info_invulnerable: "&7Invulnerable: &e{invulnerable}"
-info_parachute: "&7Paracaídas: &e{parachute}s"
-info_footer: "&8&m                             &r"
-
-# Remove Mobs Messages
-removemobs_success: "&aEliminadas &e{count}&a criaturas sin jinete."
-
-# Sign Messages
-sign_created: "&aCartel de vuelo creado correctamente."
-sign_invalid: "&cCartel inválido. Formato: [FlappyMobs] / <nombre_vuelo>"
+# Signs
 sign_header: "&8[&6FlappyMobs&8]"
-
-# Error Messages
-error_generic: "&cHa ocurrido un error. Revisa la consola."
-error_economy: "&cError al procesar el pago."
-error_loading_flights: "&cError al cargar los vuelos."
-error_saving_flight: "&cError al guardar el vuelo."
+sign_created: "&aCartel creado correctamente."
+sign_invalid: "&cCartel inválido. Asegúrate de poner el nombre del vuelo en la segunda línea."
