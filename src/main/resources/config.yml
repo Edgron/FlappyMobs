@@ -11,6 +11,32 @@ general:
   # Enable debug messages
   debug: false
 
+# Sound Settings
+sounds:
+  # Sound when flight starts
+  start:
+    enabled: true
+    sound: "ENTITY_BREEZE_WIND_BURST"
+    volume: 1.0
+    pitch: 1.0
+    category: "MASTER"
+
+  # Sound when parachute deploys
+  parachute_deploy:
+    enabled: true
+    sound: "ENTITY_ENDER_DRAGON_FLAP"
+    volume: 1.0
+    pitch: 1.0
+    category: "MASTER"
+
+  # Sound during parachute descent (loops every second)
+  parachute_descent:
+    enabled: true
+    sound: "ITEM_ELYTRA_FLYING"
+    volume: 0.5
+    pitch: 1.0
+    category: "MASTER"
+
 # Creature Settings
 creatures:
   ENDER_DRAGON:

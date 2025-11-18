@@ -6,65 +6,39 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MessagesManager {
 
     private final FlappyMobs plugin;
     private FileConfiguration messages;
-    private File messagesFile;
+    private final Map<String, String> cache;
 
     public MessagesManager(FlappyMobs plugin) {
         this.plugin = plugin;
+        this.cache = new HashMap<>();
         loadMessages();
     }
 
-    public void loadMessages() {
-        String language = plugin.getConfig().getString("general.language", "es");
+    private void loadMessages() {
+        String lang = plugin.getConfig().getString("general.language", "es");
+        File langFile = new File(plugin.getDataFolder() + "/lang", lang + ".yml");
 
-        // Create lang folder
-        File langFolder = new File(plugin.getDataFolder(), "lang");
-        if (!langFolder.exists()) {
-            langFolder.mkdirs();
+        if (!langFile.exists()) {
+            plugin.saveResource("lang/" + lang + ".yml", false);
         }
 
-        // Copy default messages file
-        messagesFile = new File(langFolder, "messages_" + language + ".yml");
-        if (!messagesFile.exists()) {
-            try {
-                InputStream defaultMessages = plugin.getResource("lang/messages_" + language + ".yml");
-                if (defaultMessages != null) {
-                    Files.copy(defaultMessages, messagesFile.toPath());
-                } else {
-                    plugin.getLogger().warning("Language file not found for: " + language);
-                    // Fallback to Spanish
-                    defaultMessages = plugin.getResource("lang/messages_es.yml");
-                    if (defaultMessages != null) {
-                        Files.copy(defaultMessages, messagesFile.toPath());
-                    }
-                }
-            } catch (IOException e) {
-                plugin.getLogger().severe("Could not create messages file!");
-                e.printStackTrace();
-            }
-        }
+        messages = YamlConfiguration.loadConfiguration(langFile);
+        cache.clear();
 
-        messages = YamlConfiguration.loadConfiguration(messagesFile);
-    }
-
-    public void reload() {
-        loadMessages();
-    }
-
-    public String getMessage(String key) {
-        String message = messages.getString(key, "&cMessage not found: " + key);
-        return ChatColor.translateAlternateColorCodes('&', message);
+        plugin.getLogger().info("Loaded language: " + lang);
     }
 
     public String getMessage(String key, String... replacements) {
-        String message = getMessage(key);
+        String message = cache.computeIfAbsent(key, k -> 
+            ChatColor.translateAlternateColorCodes('&', 
+                messages.getString(k, "&cMessage not found: " + k)));
 
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 < replacements.length) {
@@ -75,15 +49,11 @@ public class MessagesManager {
         return message;
     }
 
-    public String getPrefix() {
-        return getMessage("prefix");
-    }
-
-    public String getPrefixedMessage(String key) {
-        return getPrefix() + getMessage(key);
-    }
-
     public String getPrefixedMessage(String key, String... replacements) {
-        return getPrefix() + getMessage(key, replacements);
+        return getMessage("prefix") + getMessage(key, replacements);
+    }
+
+    public void reload() {
+        loadMessages();
     }
 }

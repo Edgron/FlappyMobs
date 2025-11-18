@@ -4,13 +4,19 @@ import com.omniblock.flappymobs.FlappyMobs;
 import com.omniblock.flappymobs.config.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -18,19 +24,44 @@ import org.bukkit.util.Vector;
 
 import java.util.*;
 
-public class FlightManager {
+public class FlightManager implements Listener {
 
     private final FlappyMobs plugin;
     private final Map<String, Flight> flights;
     private final Map<UUID, FlightSession> activeSessions;
     private final Map<UUID, Flight> creatingFlights;
+    private final Map<UUID, ParachuteData> activeParachutes;
 
     public FlightManager(FlappyMobs plugin) {
         this.plugin = plugin;
         this.flights = new HashMap<>();
         this.activeSessions = new HashMap<>();
         this.creatingFlights = new HashMap<>();
+        this.activeParachutes = new HashMap<>();
         loadFlights();
+
+        // Register listener for parachute damage
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    private static class ParachuteData {
+        private final Player player;
+        private final Chicken chicken;
+        private final BukkitTask soundTask;
+        private int duration;
+
+        public ParachuteData(Player player, Chicken chicken, BukkitTask soundTask, int duration) {
+            this.player = player;
+            this.chicken = chicken;
+            this.soundTask = soundTask;
+            this.duration = duration;
+        }
+
+        public Player getPlayer() { return player; }
+        public Chicken getChicken() { return chicken; }
+        public BukkitTask getSoundTask() { return soundTask; }
+        public int getDuration() { return duration; }
+        public void decrementDuration() { this.duration--; }
     }
 
     public void loadFlights() {
@@ -73,6 +104,34 @@ public class FlightManager {
         }
 
         plugin.getLogger().info("Loaded " + flights.size() + " flights.");
+
+        // Update all signs with new flight data
+        updateAllSigns();
+    }
+
+    private void updateAllSigns() {
+        // This will be called after reload to update all signs
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            plugin.getServer().getWorlds().forEach(world -> {
+                world.getLoadedChunks().forEach(chunk -> {
+                    Arrays.stream(chunk.getTileEntities())
+                        .filter(tile -> tile instanceof org.bukkit.block.Sign)
+                        .forEach(tile -> {
+                            org.bukkit.block.Sign sign = (org.bukkit.block.Sign) tile;
+                            String line0 = org.bukkit.ChatColor.stripColor(sign.getLine(0));
+                            if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase("FlappyMobs")) {
+                                String flightName = sign.getLine(1);
+                                Flight flight = getFlight(flightName);
+                                if (flight != null) {
+                                    sign.setLine(2, flight.getCreature().name());
+                                    sign.setLine(3, plugin.getEconomyManager().formatAmount(flight.getCost()));
+                                    sign.update();
+                                }
+                            }
+                        });
+                });
+            });
+        });
     }
 
     public void saveFlight(Flight flight) {
@@ -145,11 +204,18 @@ public class FlightManager {
 
         // Check and charge cost
         if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
+            if (!plugin.getEconomyManager().isEnabled()) {
+                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_economy"));
+                plugin.getLogger().warning("Economy is not enabled but flight has cost!");
+                return;
+            }
+
             if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
                 player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
                     "cost", plugin.getEconomyManager().formatAmount(flight.getCost())));
                 if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds for flight");
+                    plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
+                        plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
                 }
                 return;
             }
@@ -166,6 +232,9 @@ public class FlightManager {
                 plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
             }
         }
+
+        // Play start sound
+        playSound(player, player.getLocation(), "start");
 
         // Teleport player to first waypoint
         Waypoint firstWP = flight.getWaypoints().get(0);
@@ -199,15 +268,12 @@ public class FlightManager {
             creature.setCollidable(false);
 
             // Apply scale using Attribute.SCALE (Paper 1.21+)
-            // Note: In 1.21.4+ the "generic." prefix was removed
             AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
             if (scaleAttr != null) {
                 scaleAttr.setBaseValue(config.getScale());
                 if (plugin.getConfigManager().isDebugEnabled()) {
                     plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
                 }
-            } else if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().warning("[DEBUG] SCALE attribute not available for " + flight.getCreature());
             }
 
             if (plugin.getConfigManager().isDebugEnabled()) {
@@ -332,9 +398,14 @@ public class FlightManager {
         double distY = Math.abs(currentLoc.getY() - targetLoc.getY());
         double distZ = Math.abs(currentLoc.getZ() - targetLoc.getZ());
 
-        if (distX <= 2.5 && distY <= 3.5 && distZ <= 2.5) {
+        // Check if it's the last waypoint - use stricter tolerance
+        boolean isLastWaypoint = (wpIndex == flight.getWaypoints().size() - 1);
+        double tolerance = isLastWaypoint ? 1.0 : 2.5;
+        double toleranceY = isLastWaypoint ? 1.0 : 3.5;
+
+        if (distX <= tolerance && distY <= toleranceY && distZ <= tolerance) {
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] Reached WP" + wpIndex + " - Moving to next waypoint");
+                plugin.getLogger().info("[DEBUG] Reached WP" + wpIndex + (isLastWaypoint ? " (LAST)" : "") + " - Moving to next waypoint");
             }
             session.setCurrentWaypointIndex(wpIndex + 1);
             calculateMovement(session);
@@ -354,15 +425,10 @@ public class FlightManager {
         if (creature.isValid()) {
             creature.eject();
 
-            if (session.getFlight().getParachuteTime() > 0) {
-                player.addPotionEffect(new PotionEffect(
-                    PotionEffectType.SLOW_FALLING,
-                    session.getFlight().getParachuteTime() * 20,
-                    0,
-                    false,
-                    false
-                ));
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_activated"));
+            // Deploy parachute
+            int parachuteTime = session.getFlight().getParachuteTime();
+            if (parachuteTime >= 0) {
+                deployParachute(player, parachuteTime);
             }
 
             creature.remove();
@@ -377,16 +443,178 @@ public class FlightManager {
         }
     }
 
+    private void deployParachute(Player player, int duration) {
+        // Remove existing parachute if any
+        removeParachute(player);
+
+        // Play deployment sound
+        playSound(player, player.getLocation(), "parachute_deploy");
+
+        // Spawn chicken parachute
+        Location chickenLoc = player.getLocation().add(0, 2, 0);
+        Chicken chicken = (Chicken) player.getWorld().spawnEntity(chickenLoc, EntityType.CHICKEN);
+
+        // Configure chicken
+        chicken.setAI(false);
+        chicken.setGravity(false);
+        chicken.setSilent(true);
+        chicken.setInvulnerable(false);
+        chicken.setMaxHealth(10.0);
+        chicken.setHealth(10.0);
+        chicken.setCollidable(true);
+
+        // Set scale
+        AttributeInstance scaleAttr = chicken.getAttribute(Attribute.SCALE);
+        if (scaleAttr != null) {
+            scaleAttr.setBaseValue(2.0);
+        }
+
+        // Make player ride chicken (chicken on player's head)
+        player.addPassenger(chicken);
+
+        // Apply slow falling effect
+        int effectDuration = duration == 0 ? Integer.MAX_VALUE : duration * 20;
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, effectDuration, 0, false, false));
+
+        // Start descent sound loop
+        BukkitTask soundTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!player.isOnGround() && activeParachutes.containsKey(player.getUniqueId())) {
+                playSound(player, player.getLocation(), "parachute_descent");
+            }
+        }, 0L, 20L);
+
+        // Store parachute data
+        ParachuteData data = new ParachuteData(player, chicken, soundTask, duration);
+        activeParachutes.put(player.getUniqueId(), data);
+
+        // Start parachute check task
+        BukkitTask checkTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            checkParachute(player);
+        }, 1L, 1L);
+
+        player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_activated"));
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Parachute deployed for " + player.getName() + 
+                " Duration: " + (duration == 0 ? "unlimited" : duration + "s"));
+        }
+    }
+
+    private void checkParachute(Player player) {
+        ParachuteData data = activeParachutes.get(player.getUniqueId());
+        if (data == null) return;
+
+        // Check if player is on ground
+        if (player.isOnGround()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground - removing parachute");
+            }
+            removeParachute(player);
+            return;
+        }
+
+        // Check if chicken is still valid
+        if (!data.getChicken().isValid() || data.getChicken().isDead()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Parachute chicken destroyed for " + player.getName());
+            }
+            removeParachute(player);
+            return;
+        }
+
+        // Update chicken position to stay on player's head
+        if (!player.getPassengers().contains(data.getChicken())) {
+            player.addPassenger(data.getChicken());
+        }
+
+        // Check duration (only if not unlimited)
+        if (data.getDuration() > 0) {
+            data.decrementDuration();
+            if (data.getDuration() <= 0) {
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Parachute duration expired for " + player.getName());
+                }
+                removeParachute(player);
+            }
+        }
+    }
+
+    private void removeParachute(Player player) {
+        ParachuteData data = activeParachutes.remove(player.getUniqueId());
+        if (data == null) return;
+
+        // Stop sounds
+        if (data.getSoundTask() != null) {
+            data.getSoundTask().cancel();
+        }
+
+        // Remove chicken
+        if (data.getChicken().isValid()) {
+            data.getChicken().remove();
+        }
+
+        // Remove slow falling effect
+        player.removePotionEffect(PotionEffectType.SLOW_FALLING);
+    }
+
+    @EventHandler
+    public void onParachuteChickenDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Chicken)) return;
+
+        Chicken chicken = (Chicken) event.getEntity();
+
+        // Check if this is a parachute chicken
+        for (Map.Entry<UUID, ParachuteData> entry : activeParachutes.entrySet()) {
+            if (entry.getValue().getChicken().equals(chicken)) {
+                Player player = entry.getValue().getPlayer();
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Parachute chicken damaged for " + player.getName() + 
+                        " - Damage: " + event.getDamage() + " - Health: " + chicken.getHealth());
+                }
+
+                // If chicken would die, remove parachute
+                if (chicken.getHealth() - event.getDamage() <= 0) {
+                    removeParachute(player);
+                    player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_destroyed"));
+                }
+                break;
+            }
+        }
+    }
+
+    private void playSound(Player player, Location location, String type) {
+        ConfigManager.SoundConfig soundConfig = plugin.getConfigManager().getSoundConfig(type);
+        if (soundConfig == null || !soundConfig.isEnabled()) return;
+
+        try {
+            Sound sound = Sound.valueOf(soundConfig.getSound());
+            SoundCategory category = SoundCategory.valueOf(soundConfig.getCategory());
+            player.playSound(location, sound, category, soundConfig.getVolume(), soundConfig.getPitch());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Invalid sound configuration for: " + type);
+        }
+    }
+
     public boolean isInFlight(Player player) {
         return activeSessions.containsKey(player.getUniqueId());
     }
 
     public void cleanup() {
+        // End all flights
         for (FlightSession session : new ArrayList<>(activeSessions.values())) {
             endFlight(session.getPlayer(), false);
         }
         activeSessions.clear();
         creatingFlights.clear();
+
+        // Remove all parachutes
+        for (UUID uuid : new ArrayList<>(activeParachutes.keySet())) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                removeParachute(player);
+            }
+        }
+        activeParachutes.clear();
     }
 
     public void reload() {
