@@ -1,4 +1,6 @@
 # Spanish Messages for FlappyMobs
+# To disable a message, simply comment it out with # or delete the line
+# Do NOT set messages to "none" or "null"
 
 prefix: "&8[&6FlappyMobs&8] &r"
 
@@ -17,16 +19,16 @@ not_riding: "&cNo estás montando en ninguna criatura."
 insufficient_funds: "&cNo tienes suficiente dinero. Necesitas: &e{cost}"
 payment_success: "&aPagado: &e{cost}"
 
+# Command Dismount
+command_dismount_disabled: "&cNo puedes usar /fp dismount en este vuelo."
+
 # Parachute
 parachute_activated: "&aParacaídas desplegado. Descenso seguro activado."
 parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"
 parachute_cancelled: "&eParacaídas desactivado manualmente."
 
-# Dismount Confirmation
-dismount_confirm: "&e¿Seguro que quieres desmontar? Pulsa SHIFT de nuevo."
-
-# Dismount
-dismount_success: "&aHas aterrizado correctamente en el destino."
+# Dismount (comment these lines to disable these messages)
+# dismount_success: "&aHas aterrizado correctamente en el destino."
 
 # Enderpearl
 enderpearl_disabled_flight: "&cNo puedes usar enderpearls durante este vuelo."
@@ -73,7 +75,7 @@ delete_success: "&aVuelo &e{flight} &aeliminado correctamente."
 
 # Edit Command
 edit_usage: "&cUso: /fp edit <flight> <property> <value>"
-edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute, enderpearl_flight, enderpearl_parachute"
+edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute, enderpearl_flight, enderpearl_parachute, shift_dismount, command_dismount"
 edit_invalid_value: "&cValor inválido para la propiedad &e{property}&c."
 edit_success: "&aPropiedad &e{property} &adel vuelo &e{flight} &aactualizada a: &f{value}"
 

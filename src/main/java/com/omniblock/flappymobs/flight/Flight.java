@@ -14,6 +14,7 @@ public class Flight {
     private boolean allowEnderpearlInFlight;
     private boolean allowEnderpearlInParachute;
     private boolean allowShiftDismount;
+    private boolean allowCommandDismount;
     private final List<Waypoint> waypoints;
 
     public Flight(String name, EntityType creature, double cost) {
@@ -25,6 +26,7 @@ public class Flight {
         this.allowEnderpearlInFlight = false;
         this.allowEnderpearlInParachute = false;
         this.allowShiftDismount = true;
+        this.allowCommandDismount = true;
         this.waypoints = new ArrayList<>();
     }
 
@@ -43,6 +45,8 @@ public class Flight {
     public void setAllowEnderpearlInParachute(boolean allow) { this.allowEnderpearlInParachute = allow; }
     public boolean isAllowShiftDismount() { return allowShiftDismount; }
     public void setAllowShiftDismount(boolean allow) { this.allowShiftDismount = allow; }
+    public boolean isAllowCommandDismount() { return allowCommandDismount; }
+    public void setAllowCommandDismount(boolean allow) { this.allowCommandDismount = allow; }
 
     public List<Waypoint> getWaypoints() { return waypoints; }
     public void addWaypoint(Waypoint waypoint) { waypoints.add(waypoint); }

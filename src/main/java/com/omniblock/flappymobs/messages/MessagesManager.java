@@ -7,8 +7,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MessagesManager {
 
@@ -35,20 +33,33 @@ public class MessagesManager {
     }
 
     public String getMessage(String key) {
-        String message = messages.getString(key, "&cMessage not found: " + key);
+        // Check if key exists in YAML (not commented)
+        if (!messages.contains(key)) {
+            return null;
+        }
+
+        String message = messages.getString(key);
+
+        // Check if message is null or empty
+        if (message == null || message.trim().isEmpty()) {
+            return null;
+        }
+
         return ChatColor.translateAlternateColorCodes('&', message);
     }
 
     public String getPrefixedMessage(String key) {
         String message = getMessage(key);
 
-        // Check if message should be suppressed
-        if (message.equalsIgnoreCase("none") || message.equalsIgnoreCase("null")) {
+        // Message not found or commented
+        if (message == null) {
             return null;
         }
 
         String prefix = getMessage("prefix");
-        if (prefix.equalsIgnoreCase("none") || prefix.equalsIgnoreCase("null")) {
+
+        // If prefix doesn't exist, return message without prefix
+        if (prefix == null) {
             return message;
         }
 
@@ -58,11 +69,12 @@ public class MessagesManager {
     public String getPrefixedMessage(String key, String... replacements) {
         String message = getMessage(key);
 
-        // Check if message should be suppressed
-        if (message.equalsIgnoreCase("none") || message.equalsIgnoreCase("null")) {
+        // Message not found or commented
+        if (message == null) {
             return null;
         }
 
+        // Apply replacements
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 < replacements.length) {
                 message = message.replace("{" + replacements[i] + "}", replacements[i + 1]);
@@ -70,7 +82,9 @@ public class MessagesManager {
         }
 
         String prefix = getMessage("prefix");
-        if (prefix.equalsIgnoreCase("none") || prefix.equalsIgnoreCase("null")) {
+
+        // If prefix doesn't exist, return message without prefix
+        if (prefix == null) {
             return message;
         }
 
