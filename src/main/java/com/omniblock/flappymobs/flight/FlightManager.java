@@ -7,6 +7,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -15,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -124,27 +126,54 @@ public class FlightManager implements Listener {
     private void updateAllSigns() {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             String signKey = plugin.getConfigManager().getSignKey();
+            String signKeyStripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', signKey))
+                .replace("[", "").replace("]", "").trim();
+
+            int updatedSigns = 0;
 
             for (World world : plugin.getServer().getWorlds()) {
                 for (Chunk chunk : world.getLoadedChunks()) {
-                    for (BlockState tile : chunk.getTileEntities()) {
-                        if (tile instanceof org.bukkit.block.Sign) {
-                            org.bukkit.block.Sign sign = (org.bukkit.block.Sign) tile;
-                            String line0 = ChatColor.stripColor(sign.getLine(0));
-                            if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase(signKey.replace("[", "").replace("]", ""))) {
-                                String flightName = ChatColor.stripColor(sign.getLine(1));
-                                Flight flight = getFlight(flightName);
-                                if (flight != null) {
-                                    sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
-                                    sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
-                                    sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
-                                    sign.setLine(3, plugin.getConfigManager().getSignLine3Color() + plugin.getEconomyManager().formatAmount(flight.getCost()));
-                                    sign.update();
-                                }
+                    for (BlockState state : chunk.getTileEntities()) {
+                        if (!(state instanceof Sign)) continue;
+
+                        Sign sign = (Sign) state;
+                        String line0 = ChatColor.stripColor(sign.getLine(0));
+
+                        if (line0 == null || line0.isEmpty()) continue;
+
+                        String line0Stripped = line0.replace("[", "").replace("]", "").trim();
+
+                        if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) continue;
+
+                        String flightName = ChatColor.stripColor(sign.getLine(1)).trim();
+
+                        if (flightName.isEmpty()) continue;
+
+                        Flight flight = getFlight(flightName);
+
+                        if (flight == null) {
+                            if (plugin.getConfigManager().isDebugEnabled()) {
+                                plugin.getLogger().warning("[DEBUG] Sign found with flight name '" + flightName + "' but flight doesn't exist");
                             }
+                            continue;
+                        }
+
+                        sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
+                        sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
+                        sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
+                        sign.setLine(3, plugin.getConfigManager().getSignLine3Color() + plugin.getEconomyManager().formatAmount(flight.getCost()));
+                        sign.update();
+                        updatedSigns++;
+
+                        if (plugin.getConfigManager().isDebugEnabled()) {
+                            plugin.getLogger().info("[DEBUG] Updated sign for flight: " + flightName);
                         }
                     }
                 }
+            }
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Updated " + updatedSigns + " signs");
             }
         });
     }
@@ -208,12 +237,14 @@ public class FlightManager implements Listener {
         }
 
         if (activeSessions.containsKey(player.getUniqueId())) {
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("already_riding"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("already_riding");
+            if (message != null) player.sendMessage(message);
             return;
         }
 
         if (flight.getWaypoints().isEmpty()) {
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_generic"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
+            if (message != null) player.sendMessage(message);
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
             }
@@ -222,14 +253,16 @@ public class FlightManager implements Listener {
 
         if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
             if (!plugin.getEconomyManager().isEnabled()) {
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_economy"));
+                String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
+                if (message != null) player.sendMessage(message);
                 plugin.getLogger().warning("Economy is not enabled but flight has cost!");
                 return;
             }
 
             if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
-                    "cost", plugin.getEconomyManager().formatAmount(flight.getCost())));
+                String message = plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
+                    "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+                if (message != null) player.sendMessage(message);
                 if (plugin.getConfigManager().isDebugEnabled()) {
                     plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
                         plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
@@ -238,12 +271,14 @@ public class FlightManager implements Listener {
             }
 
             if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_economy"));
+                String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
+                if (message != null) player.sendMessage(message);
                 return;
             }
 
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("payment_success", 
-                "cost", plugin.getEconomyManager().formatAmount(flight.getCost())));
+            String message = plugin.getMessagesManager().getPrefixedMessage("payment_success", 
+                "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+            if (message != null) player.sendMessage(message);
 
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
@@ -265,7 +300,8 @@ public class FlightManager implements Listener {
 
         if (!(entity instanceof LivingEntity)) {
             entity.remove();
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_generic"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
+            if (message != null) player.sendMessage(message);
             return;
         }
 
@@ -317,7 +353,8 @@ public class FlightManager implements Listener {
 
         session.setMovementTask(task);
 
-        player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_started"));
+        String message = plugin.getMessagesManager().getPrefixedMessage("flight_started");
+        if (message != null) player.sendMessage(message);
 
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
@@ -456,7 +493,6 @@ public class FlightManager implements Listener {
             if (!completed) {
                 int parachuteTime = session.getFlight().getParachuteTime();
                 if (parachuteTime >= 0) {
-                    // Small delay to ensure player is dismounted
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         deployParachute(player, session.getFlight(), parachuteTime);
                     }, 5L);
@@ -469,7 +505,8 @@ public class FlightManager implements Listener {
         }
 
         if (completed) {
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_success"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("dismount_success");
+            if (message != null) player.sendMessage(message);
         }
 
         if (plugin.getConfigManager().isDebugEnabled()) {
@@ -522,7 +559,8 @@ public class FlightManager implements Listener {
             checkParachute(player);
         }, 1L, 1L);
 
-        player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_activated"));
+        String message = plugin.getMessagesManager().getPrefixedMessage("parachute_activated");
+        if (message != null) player.sendMessage(message);
 
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Parachute deployed for " + player.getName() + 
@@ -549,7 +587,8 @@ public class FlightManager implements Listener {
             }
             removeParachute(player);
             maceProtection.remove(player.getUniqueId());
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled");
+            if (message != null) player.sendMessage(message);
             return;
         }
 
@@ -578,7 +617,6 @@ public class FlightManager implements Listener {
             player.addPassenger(data.getChicken());
         }
 
-        // Only decrement duration after 20 ticks (1 second) alive
         if (data.getDuration() > 0 && data.getTicksAlive() >= 20) {
             if (data.getTicksAlive() % 20 == 0) {
                 data.decrementDuration();
@@ -689,7 +727,8 @@ public class FlightManager implements Listener {
 
                 if (chicken.getHealth() - event.getDamage() <= 0) {
                     removeParachute(player);
-                    player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_destroyed"));
+                    String message = plugin.getMessagesManager().getPrefixedMessage("parachute_destroyed");
+                    if (message != null) player.sendMessage(message);
                 }
                 break;
             }
@@ -702,7 +741,6 @@ public class FlightManager implements Listener {
 
         if (!event.isSneaking()) return;
 
-        // Check parachute FIRST with 1 second delay
         if (activeParachutes.containsKey(player.getUniqueId())) {
             Long startTime = parachuteStartTime.get(player.getUniqueId());
             if (startTime != null) {
@@ -714,16 +752,40 @@ public class FlightManager implements Listener {
 
             removeParachute(player);
             maceProtection.remove(player.getUniqueId());
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+            String message = plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled");
+            if (message != null) player.sendMessage(message);
             return;
         }
 
-        // Check flight dismount
         FlightSession session = activeSessions.get(player.getUniqueId());
         if (session != null) {
             if (session.getFlight().isAllowShiftDismount()) {
                 endFlight(player, false);
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_dismounted"));
+                String message = plugin.getMessagesManager().getPrefixedMessage("flight_dismounted");
+                if (message != null) player.sendMessage(message);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onEntityDismount(EntityDismountEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+
+        Player player = (Player) event.getEntity();
+        FlightSession session = activeSessions.get(player.getUniqueId());
+
+        if (session == null) return;
+
+        Entity dismounted = event.getDismounted();
+
+        if (!dismounted.equals(session.getCreature())) return;
+
+        if (!session.getFlight().isAllowShiftDismount()) {
+            event.setCancelled(true);
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Prevented dismount for player " + player.getName() + 
+                    " - allow_shift_dismount is false");
             }
         }
     }
@@ -737,22 +799,22 @@ public class FlightManager implements Listener {
 
         if (item == null || item.getType() != Material.ENDER_PEARL) return;
 
-        // Check if player is in flight
         FlightSession session = activeSessions.get(player.getUniqueId());
         if (session != null) {
             if (!session.getFlight().isAllowEnderpearlInFlight()) {
                 event.setCancelled(true);
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight"));
+                String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight");
+                if (message != null) player.sendMessage(message);
                 return;
             }
         }
 
-        // Check if player is in parachute
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data != null) {
             if (!data.getFlight().isAllowEnderpearlInParachute()) {
                 event.setCancelled(true);
-                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute"));
+                String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute");
+                if (message != null) player.sendMessage(message);
                 return;
             }
         }
