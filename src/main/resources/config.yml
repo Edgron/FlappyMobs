@@ -4,10 +4,8 @@
 general:
   # Language file (in lang folder)
   language: "es"
-
   # Default parachute duration in seconds (0 = permanent until ground)
   parachute_time: 5
-
   # Enable debug messages
   debug: false
 
@@ -15,7 +13,6 @@ general:
 parachute:
   # Chicken health (can be damaged/destroyed)
   chicken_health: 10.0
-
   # Chicken scale (visual size)
   chicken_scale: 1.5
 
@@ -23,9 +20,7 @@ parachute:
 signs:
   # Sign key (text on first line)
   key: "[FlappyMobs]"
-
   # Line colors - supports legacy codes (&a, &c) and hex colors (&#FF5733)
-  # Format: &X for legacy or &#RRGGBB for hex
   line0_color: "&6"      # Sign key color
   line1_color: "&e"      # Flight name color
   line2_color: "&f"      # Creature type color
@@ -58,160 +53,141 @@ sounds:
     category: "MASTER"
 
 # Creature Settings
-# Note: ENDER_DRAGON has been removed as it's too large for most builds
 creatures:
   PHANTOM:
     enabled: true
-    scale: 0.8
-    speed: 2.0
     health: 20.0
-    vulnerable: true
+    speed: 2.0
+    scale: 0.8
     silent: true
+
   GHAST:
     enabled: true
-    scale: 1.2
-    speed: 1.0
-    health: 50.0
-    vulnerable: false
+    health: 30.0
+    speed: 1.5
+    scale: 0.6
     silent: true
+
   BLAZE:
     enabled: true
-    scale: 0.6
-    speed: 1.8
-    health: 20.0
-    vulnerable: true
+    health: 25.0
+    speed: 2.5
+    scale: 1.0
     silent: true
+
   BEE:
     enabled: true
-    scale: 1.5
-    speed: 1.5
-    health: 10.0
-    vulnerable: true
-    silent: false
+    health: 15.0
+    speed: 3.0
+    scale: 2.0
+    silent: true
+
   PARROT:
     enabled: true
-    scale: 2.0
-    speed: 1.2
-    health: 6.0
-    vulnerable: true
-    silent: false
+    health: 10.0
+    speed: 2.5
+    scale: 2.5
+    silent: true
+
   VEX:
     enabled: true
-    scale: 2.5
-    speed: 2.5
-    health: 14.0
-    vulnerable: true
+    health: 20.0
+    speed: 3.0
+    scale: 1.5
     silent: true
+
   ALLAY:
     enabled: true
-    scale: 2.0
-    speed: 1.3
-    health: 20.0
-    vulnerable: true
-    silent: false
+    health: 15.0
+    speed: 2.0
+    scale: 1.8
+    silent: true
+
   BREEZE:
     enabled: true
+    health: 25.0
+    speed: 2.8
     scale: 1.0
-    speed: 2.0
-    health: 30.0
-    vulnerable: true
-    silent: false
+    silent: true
 
-# Message settings
-# true = send message (enabled)
-# false = don't send message (disabled)
+# MESSAGES
+# Enable or disable messages. Change true to false to disable.
+# message_key: true/false
 messages:
-prefix: "true"
 
-# GeneralMessages
-player_only: "true"
-no_permission: "true"
-error_generic: "true"
-error_economy: "true"
+  # General
+  prefix: true
+  no_permission: true
+  player_only: true
+  reload_success: true
+  invalid_creature: true
+  creature_disabled: true
+  error_generic: true
+  error_economy: true
 
-# Flight Messages
-#flight_started: "true"
-flight_not_found: "true"
-flight_dismounted: "true"
-already_riding: "true"
-not_riding: "true"
-insufficient_funds: "true"
-payment_success: "true"
+  # Flight
+  flight_started: true
+  flight_not_found: true
+  already_riding: true
+  not_riding: true
+  flight_dismounted: true
+  dismount_success: true
+  insufficient_funds: true
+  payment_success: true
 
-# Command Dismount Messages
-command_dismount_disabled: "true"
+  # Parachute
+  parachute_activated: true
+  parachute_destroyed: true
+  parachute_cancelled: true
 
-# Parachute Messages
-parachute_activated: "true"
-parachute_destroyed: "true"
-parachute_cancelled: "true"
+  # Enderpearl
+  enderpearl_disabled_flight: true
+  enderpearl_disabled_parachute: true
 
-# Dismount (comment these lines to disable these messages)
-# dismount_success: "true"
+  # List Command
+  list_header: true
+  list_empty: true
+  list_entry: true
+  list_footer: true
 
-# Enderpearl Messages
-enderpearl_disabled_flight: "true"
-enderpearl_disabled_parachute: "true"
+  # Info Command
+  info_header: true
+  info_name: true
+  info_creature: true
+  info_cost: true
+  info_waypoints: true
+  info_invulnerable: true
+  info_parachute: true
+  info_enderpearl_flight: true
+  info_enderpearl_parachute: true
+  info_footer: true
 
-# List Command Messages
-list_header: "true"
-list_empty: "true"
-list_entry: "true"
-list_footer: "true"
+  # Create/Edit Commands
+  create_usage: true
+  create_started: true
+  create_exists: true
+  waypoint_added: true
+  waypoint_removed: true
+  waypoint_none_to_remove: true
+  save_no_flight: true
+  save_no_waypoints: true
+  save_success: true
+  cancel_success: true
 
-# Info Command Messages
-info_header: "true"
-info_name: "true"
-info_creature: "true"
-info_cost: "true"
-info_waypoints: "true"
-info_invulnerable: "true"
-info_parachute: "true"
-info_enderpearl_flight: "true"
-info_enderpearl_parachute: "true"
-info_footer: "true"
+  # Delete Command
+  delete_usage: true
+  delete_success: true
 
-# Create/Edit Commands Messages
-create_usage: "true"
-create_started: "true"
-create_exists: "true"
-invalid_creature: "true"
-creature_disabled: "true"
+  # Edit Command
+  edit_usage: true
+  edit_invalid_property: true
+  edit_invalid_value: true
+  edit_success: true
 
-waypoint_added: "true"
-waypoint_removed: "true"
-waypoint_none_to_remove: "true"
+  # Other Commands
+  removemobs_success: true
 
-save_no_flight: "true"
-save_no_waypoints: "true"
-save_success: "true"
-
-cancel_success: "true"
-
-# Delete Command Messages
-delete_usage: "true"
-delete_success: "true"
-
-# Edit Command Messages
-edit_usage: "true"
-edit_invalid_property: "true"
-edit_invalid_value: "true"
-edit_success: "true"
-
-# Other Commands Messages
-removemobs_success: "true"
-reload_success: "true"
-
-# Signs Messages
-sign_header: "true"
-sign_created: "true"
-sign_invalid: "true"
-
-
-# Economy Settings
-economy:
-  enabled: true
-  currency_symbol: "$"
-
-# Flights are stored in flights.yml
-# This file is auto-generated when creating flights
+  # Signs
+  sign_header: true
+  sign_created: true
+  sign_invalid: true

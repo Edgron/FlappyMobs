@@ -14,7 +14,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDismountEvent;
@@ -78,6 +77,24 @@ public class FlightManager implements Listener {
         public void incrementTicksAlive() { this.ticksAlive++; }
     }
 
+    /**
+     * Strip ALL color codes from text including:
+     * - Legacy codes (&a, §c, &0-9, &a-f, &k-o, &r)
+     * - Hex colors with & (&#FF5733)
+     * - Hex colors without & (#FF5733)
+     * 
+     * @param text Text to strip colors from
+     * @return Text without any color codes
+     */
+    private String stripAllColors(String text) {
+        if (text == null) return null;
+
+        return text
+            .replaceAll("[&§][0-9a-fk-or]", "")           // Legacy codes (&a, §c, etc.)
+            .replaceAll("&#[0-9A-Fa-f]{6}", "")            // Hex with & (&#FF5733)
+            .replaceAll("#[0-9A-Fa-f]{6}", "");            // Hex without & (#FF5733)
+    }
+
     public void loadFlights() {
         flights.clear();
         FileConfiguration config = plugin.getConfigManager().getFlightsConfig();
@@ -127,7 +144,10 @@ public class FlightManager implements Listener {
     private void updateAllSigns() {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             String signKey = plugin.getConfigManager().getSignKey();
-            String signKeyStripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', signKey))
+
+            // Strip ALL colors from sign key (legacy + hex)
+            String signKeyStripped = stripAllColors(
+                ChatColor.translateAlternateColorCodes('&', signKey))
                 .replace("[", "").replace("]", "").trim();
 
             int updatedSigns = 0;
@@ -138,15 +158,18 @@ public class FlightManager implements Listener {
                         if (!(state instanceof Sign)) continue;
 
                         Sign sign = (Sign) state;
-                        String line0 = ChatColor.stripColor(sign.getLine(0));
+                        String line0 = sign.getLine(0);
 
                         if (line0 == null || line0.isEmpty()) continue;
 
-                        String line0Stripped = line0.replace("[", "").replace("]", "").trim();
+                        // Strip ALL colors from sign line 0 (legacy + hex)
+                        String line0Stripped = stripAllColors(line0)
+                            .replace("[", "").replace("]", "").trim();
 
                         if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) continue;
 
-                        String flightName = ChatColor.stripColor(sign.getLine(1)).trim();
+                        // Strip colors from flight name
+                        String flightName = stripAllColors(sign.getLine(1)).trim();
 
                         if (flightName.isEmpty()) continue;
 
@@ -159,6 +182,7 @@ public class FlightManager implements Listener {
                             continue;
                         }
 
+                        // Update sign with colors
                         sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
                         sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
                         sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
@@ -892,58 +916,4 @@ public class FlightManager implements Listener {
         }
         return count;
     }
-
-    @EventHandler
-public void onSignChange(SignChangeEvent event) {
-    Player player = event.getPlayer();
-    
-    String line0 = ChatColor.stripColor(event.getLine(0));
-    if (line0 == null || line0.isEmpty()) return;
-    
-    String signKey = plugin.getConfigManager().getSignKey();
-    String signKeyStripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', signKey))
-        .replace("[", "").replace("]", "").trim();
-    
-    String line0Stripped = line0.replace("[", "").replace("]", "").trim();
-    
-    if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
-    
-    // Strip colors BEFORE searching flight name
-    String flightName = ChatColor.stripColor(event.getLine(1)).trim();
-    
-    if (flightName.isEmpty()) {
-        String message = plugin.getMessagesManager().getPrefixedMessage("sign_invalid");
-        if (message != null) player.sendMessage(message);
-        return;
-    }
-    
-    Flight flight = getFlight(flightName);
-    
-    if (flight == null) {
-        String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", "flight", flightName);
-        if (message != null) player.sendMessage(message);
-        return;
-    }
-    
-    // Translate color codes BEFORE setLine()
-    String line0Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine0Color());
-    String line1Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine1Color());
-    String line2Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine2Color());
-    String line3Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine3Color());
-    
-    // Apply colors immediately to the sign
-    event.setLine(0, line0Color + signKey);
-    event.setLine(1, line1Color + flightName);
-    event.setLine(2, line2Color + flight.getCreature().name());
-    event.setLine(3, line3Color + plugin.getEconomyManager().formatAmount(flight.getCost()));
-    
-    String message = plugin.getMessagesManager().getPrefixedMessage("sign_created");
-    if (message != null) player.sendMessage(message);
-    
-    if (plugin.getConfigManager().isDebugEnabled()) {
-        plugin.getLogger().info("[DEBUG] Created sign for flight: " + flightName + " by " + player.getName());
-        plugin.getLogger().info("[DEBUG] Colors applied: L0=" + line0Color + " L1=" + line1Color +
-            " L2=" + line2Color + " L3=" + line3Color);
-    }
-}
 }
