@@ -34,16 +34,19 @@ public class MessagesManager {
 
     /**
      * Check if a message is enabled in config.yml
+     * IMPORTANT: Reloads config from disk to get latest values
+     * 
      * @param key Message key to check
-     * @return true if message is enabled, false if disabled or not found
+     * @return true if message is enabled, false if disabled
      */
     private boolean isMessageEnabled(String key) {
-        // Reload config to get latest values
+        // CRITICAL: Reload config from disk to get fresh values
         plugin.reloadConfig();
+
         boolean enabled = plugin.getConfig().getBoolean("messages." + key, true);
 
         if (plugin.getConfig().getBoolean("general.debug", false)) {
-            plugin.getLogger().info("[DEBUG] Message '" + key + "' enabled: " + enabled);
+            plugin.getLogger().info("[DEBUG] Message check: 'messages." + key + "' = " + enabled);
         }
 
         return enabled;
@@ -55,10 +58,10 @@ public class MessagesManager {
     }
 
     public String getPrefixedMessage(String key) {
-        // Check if message is enabled in config
+        // Check if message is enabled
         if (!isMessageEnabled(key)) {
             if (plugin.getConfig().getBoolean("general.debug", false)) {
-                plugin.getLogger().info("[DEBUG] Message '" + key + "' is disabled, not sending");
+                plugin.getLogger().info("[DEBUG] Message '" + key + "' is DISABLED, returning null");
             }
             return null;
         }
@@ -76,10 +79,10 @@ public class MessagesManager {
     }
 
     public String getPrefixedMessage(String key, String... replacements) {
-        // Check if message is enabled in config
+        // Check if message is enabled
         if (!isMessageEnabled(key)) {
             if (plugin.getConfig().getBoolean("general.debug", false)) {
-                plugin.getLogger().info("[DEBUG] Message '" + key + "' is disabled, not sending");
+                plugin.getLogger().info("[DEBUG] Message '" + key + "' is DISABLED, returning null");
             }
             return null;
         }
@@ -107,6 +110,10 @@ public class MessagesManager {
         String message = getPrefixedMessage(key);
         if (message != null) {
             player.sendMessage(message);
+        } else {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Not sending message '" + key + "' - disabled in config");
+            }
         }
     }
 
@@ -114,6 +121,10 @@ public class MessagesManager {
         String message = getPrefixedMessage(key, replacements);
         if (message != null) {
             player.sendMessage(message);
+        } else {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Not sending message '" + key + "' - disabled in config");
+            }
         }
     }
 

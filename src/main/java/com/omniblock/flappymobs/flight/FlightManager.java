@@ -14,6 +14,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDismountEvent;
@@ -145,7 +146,6 @@ public class FlightManager implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             String signKey = plugin.getConfigManager().getSignKey();
 
-            // Strip ALL colors from sign key (legacy + hex)
             String signKeyStripped = stripAllColors(
                 ChatColor.translateAlternateColorCodes('&', signKey))
                 .replace("[", "").replace("]", "").trim();
@@ -162,13 +162,11 @@ public class FlightManager implements Listener {
 
                         if (line0 == null || line0.isEmpty()) continue;
 
-                        // Strip ALL colors from sign line 0 (legacy + hex)
                         String line0Stripped = stripAllColors(line0)
                             .replace("[", "").replace("]", "").trim();
 
                         if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) continue;
 
-                        // Strip colors from flight name
                         String flightName = stripAllColors(sign.getLine(1)).trim();
 
                         if (flightName.isEmpty()) continue;
@@ -182,7 +180,6 @@ public class FlightManager implements Listener {
                             continue;
                         }
 
-                        // Update sign with colors
                         sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
                         sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
                         sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
@@ -201,6 +198,54 @@ public class FlightManager implements Listener {
                 plugin.getLogger().info("[DEBUG] Updated " + updatedSigns + " signs");
             }
         });
+    }
+
+    @EventHandler
+    public void onSignChange(SignChangeEvent event) {
+        Player player = event.getPlayer();
+        String signKey = plugin.getConfigManager().getSignKey();
+
+        String signKeyStripped = stripAllColors(
+            ChatColor.translateAlternateColorCodes('&', signKey))
+            .replace("[", "").replace("]", "").trim();
+
+        String line0 = event.getLine(0);
+        if (line0 == null || line0.isEmpty()) return;
+
+        String line0Stripped = stripAllColors(line0)
+            .replace("[", "").replace("]", "").trim();
+
+        if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
+
+        String flightName = event.getLine(1);
+        if (flightName == null || flightName.isEmpty()) {
+            String message = plugin.getMessagesManager().getPrefixedMessage("sign_invalid");
+            if (message != null) player.sendMessage(message);
+            return;
+        }
+
+        String flightNameStripped = stripAllColors(flightName).trim();
+
+        Flight flight = getFlight(flightNameStripped);
+
+        if (flight == null) {
+            String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", 
+                "flight", flightNameStripped);
+            if (message != null) player.sendMessage(message);
+            return;
+        }
+
+        event.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
+        event.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightNameStripped);
+        event.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
+        event.setLine(3, plugin.getConfigManager().getSignLine3Color() + plugin.getEconomyManager().formatAmount(flight.getCost()));
+
+        String message = plugin.getMessagesManager().getPrefixedMessage("sign_created");
+        if (message != null) player.sendMessage(message);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Sign created for flight: " + flightNameStripped);
+        }
     }
 
     public void saveFlight(Flight flight) {
@@ -815,32 +860,91 @@ public class FlightManager implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
+        Block block = event.getClickedBlock();
+        if (block == null) return;
+
+        Material type = block.getType();
+        if (!type.name().contains("SIGN")) return;
+
+        if (!(block.getState() instanceof Sign)) return;
+
+        Sign sign = (Sign) block.getState();
         Player player = event.getPlayer();
-        ItemStack item = event.getItem();
 
-        if (item == null || item.getType() != Material.ENDER_PEARL) return;
+        String signKey = plugin.getConfigManager().getSignKey();
 
-        FlightSession session = activeSessions.get(player.getUniqueId());
-        if (session != null) {
-            if (!session.getFlight().isAllowEnderpearlInFlight()) {
-                event.setCancelled(true);
-                String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight");
-                if (message != null) player.sendMessage(message);
-                return;
-            }
+        String signKeyStripped = stripAllColors(
+            ChatColor.translateAlternateColorCodes('&', signKey))
+            .replace("[", "").replace("]", "").trim();
+
+        String line0 = sign.getLine(0);
+        if (line0 == null || line0.isEmpty()) return;
+
+        String line0Stripped = stripAllColors(line0)
+            .replace("[", "").replace("]", "").trim();
+
+        if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
+
+        String flightName = sign.getLine(1);
+        if (flightName == null || flightName.isEmpty()) return;
+
+        String flightNameStripped = stripAllColors(flightName).trim();
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Sign clicked:");
+            plugin.getLogger().info("[DEBUG]   Line 0 raw: '" + line0 + "'");
+            plugin.getLogger().info("[DEBUG]   Line 0 stripped: '" + line0Stripped + "'");
+            plugin.getLogger().info("[DEBUG]   Line 1 raw: '" + flightName + "'");
+            plugin.getLogger().info("[DEBUG]   Line 1 stripped: '" + flightNameStripped + "'");
+            plugin.getLogger().info("[DEBUG]   Sign key config: '" + signKey + "'");
+            plugin.getLogger().info("[DEBUG]   Sign key stripped: '" + signKeyStripped + "'");
         }
 
-        ParachuteData data = activeParachutes.get(player.getUniqueId());
-        if (data != null) {
-            if (!data.getFlight().isAllowEnderpearlInParachute()) {
-                event.setCancelled(true);
-                String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute");
-                if (message != null) player.sendMessage(message);
-                return;
+        Flight flight = getFlight(flightNameStripped);
+
+        if (flight == null) {
+            String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", 
+                "flight", flightNameStripped);
+            if (message != null) player.sendMessage(message);
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().warning("[DEBUG] Flight '" + flightNameStripped + "' not found!");
+            }
+            return;
+        }
+
+        event.setCancelled(true);
+        startFlight(player, flight);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' from sign click");
+        }
+
+        // Check for enderpearl
+        ItemStack item = event.getItem();
+        if (item != null && item.getType() == Material.ENDER_PEARL) {
+            FlightSession session = activeSessions.get(player.getUniqueId());
+            if (session != null) {
+                if (!session.getFlight().isAllowEnderpearlInFlight()) {
+                    event.setCancelled(true);
+                    String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight");
+                    if (message != null) player.sendMessage(message);
+                    return;
+                }
+            }
+
+            ParachuteData parachuteData = activeParachutes.get(player.getUniqueId());
+            if (parachuteData != null) {
+                if (!parachuteData.getFlight().isAllowEnderpearlInParachute()) {
+                    event.setCancelled(true);
+                    String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute");
+                    if (message != null) player.sendMessage(message);
+                    return;
+                }
             }
         }
     }
