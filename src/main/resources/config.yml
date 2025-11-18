@@ -19,13 +19,25 @@ parachute:
   # Chicken scale (visual size)
   chicken_scale: 1.5
 
+# Sign Settings
+signs:
+  # Sign key (text on first line)
+  key: "[FlappyMobs]"
+
+  # Line colors - supports legacy codes (&a, &c) and hex colors (&#FF5733)
+  # Format: &X for legacy or &#RRGGBB for hex
+  line0_color: "&6"      # Sign key color
+  line1_color: "&e"      # Flight name color
+  line2_color: "&f"      # Creature type color
+  line3_color: "&a"      # Price color
+
 # Sound Settings
 sounds:
   # Sound when flight starts
   start:
     enabled: true
     sound: "ENTITY_BREEZE_WIND_BURST"
-    volume: 1.0
+    volume: 0.5
     pitch: 1.0
     category: "MASTER"
 
@@ -33,27 +45,21 @@ sounds:
   parachute_deploy:
     enabled: true
     sound: "ENTITY_ENDER_DRAGON_FLAP"
-    volume: 1.0
-    pitch: 1.0
+    volume: 0.5
+    pitch: 0.8
     category: "MASTER"
 
   # Sound during parachute descent (loops every second)
   parachute_descent:
     enabled: true
     sound: "ITEM_ELYTRA_FLYING"
-    volume: 0.5
-    pitch: 1.0
+    volume: 0.2
+    pitch: 0.8
     category: "MASTER"
 
 # Creature Settings
+# Note: ENDER_DRAGON has been removed as it's too large for most builds
 creatures:
-  ENDER_DRAGON:
-    enabled: true
-    scale: 1.0
-    speed: 1.5
-    health: 200.0
-    vulnerable: false
-    silent: true
   PHANTOM:
     enabled: true
     scale: 0.8

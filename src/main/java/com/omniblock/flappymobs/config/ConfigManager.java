@@ -1,12 +1,15 @@
 package com.omniblock.flappymobs.config;
 
 import com.omniblock.flappymobs.FlappyMobs;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConfigManager {
 
@@ -68,6 +71,44 @@ public class ConfigManager {
 
     public double getParachuteChickenScale() {
         return plugin.getConfig().getDouble("parachute.chicken_scale", 1.5);
+    }
+
+    public String getSignKey() {
+        return plugin.getConfig().getString("signs.key", "[FlappyMobs]");
+    }
+
+    public String getSignLine0Color() {
+        return translateHexColor(plugin.getConfig().getString("signs.line0_color", "&6"));
+    }
+
+    public String getSignLine1Color() {
+        return translateHexColor(plugin.getConfig().getString("signs.line1_color", "&e"));
+    }
+
+    public String getSignLine2Color() {
+        return translateHexColor(plugin.getConfig().getString("signs.line2_color", "&f"));
+    }
+
+    public String getSignLine3Color() {
+        return translateHexColor(plugin.getConfig().getString("signs.line3_color", "&a"));
+    }
+
+    private String translateHexColor(String message) {
+        // Support for Minecraft hex colors &#RRGGBB
+        Pattern hexPattern = Pattern.compile("&#([A-Fa-f0-9]{6})");
+        Matcher matcher = hexPattern.matcher(message);
+        StringBuffer buffer = new StringBuffer(message.length() + 4 * 8);
+        while (matcher.find()) {
+            String group = matcher.group(1);
+            matcher.appendReplacement(buffer, ChatColor.COLOR_CHAR + "x"
+                    + ChatColor.COLOR_CHAR + group.charAt(0) + ChatColor.COLOR_CHAR + group.charAt(1)
+                    + ChatColor.COLOR_CHAR + group.charAt(2) + ChatColor.COLOR_CHAR + group.charAt(3)
+                    + ChatColor.COLOR_CHAR + group.charAt(4) + ChatColor.COLOR_CHAR + group.charAt(5)
+            );
+        }
+        matcher.appendTail(buffer);
+        // Translate legacy color codes
+        return ChatColor.translateAlternateColorCodes('&', buffer.toString());
     }
 
     public boolean isCreatureEnabled(EntityType type) {

@@ -1,0 +1,23 @@
+# FlappyMobs Flights Configuration
+# Each flight is configured with the following properties:
+# - creature: Entity type (PHANTOM, GHAST, BLAZE, BEE, PARROT, VEX, ALLAY, BREEZE)
+# - cost: Price to use the flight (requires economy plugin)
+# - invulnerable: Whether the creature can be damaged
+# - parachute: Parachute duration in seconds (0 = until ground)
+# - allow_enderpearl_in_flight: Allow ender pearls during flight
+# - allow_enderpearl_in_parachute: Allow ender pearls during parachute descent
+# - waypoints: List of coordinates (world,x,y,z)
+
+flights: {}
+# Example flight:
+#  example_flight:
+#    creature: PHANTOM
+#    cost: 100.0
+#    invulnerable: true
+#    parachute: 5
+#    allow_enderpearl_in_flight: false
+#    allow_enderpearl_in_parachute: false
+#    waypoints:
+#      - "world,100,70,200"
+#      - "world,150,80,250"
+#      - "world,200,65,300"

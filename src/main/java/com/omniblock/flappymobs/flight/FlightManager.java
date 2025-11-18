@@ -5,13 +5,20 @@ import com.omniblock.flappymobs.config.ConfigManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerToggleElytraEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -27,6 +34,7 @@ public class FlightManager implements Listener {
     private final Map<UUID, Flight> creatingFlights;
     private final Map<UUID, ParachuteData> activeParachutes;
     private final Map<UUID, Long> dismountConfirmations;
+    private final Set<UUID> maceProtection;
 
     public FlightManager(FlappyMobs plugin) {
         this.plugin = plugin;
@@ -35,6 +43,7 @@ public class FlightManager implements Listener {
         this.creatingFlights = new HashMap<>();
         this.activeParachutes = new HashMap<>();
         this.dismountConfirmations = new HashMap<>();
+        this.maceProtection = new HashSet<>();
         loadFlights();
 
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -44,18 +53,21 @@ public class FlightManager implements Listener {
         private final Player player;
         private final Chicken chicken;
         private final BukkitTask soundTask;
+        private final Flight flight;
         private int duration;
 
-        public ParachuteData(Player player, Chicken chicken, BukkitTask soundTask, int duration) {
+        public ParachuteData(Player player, Chicken chicken, BukkitTask soundTask, Flight flight, int duration) {
             this.player = player;
             this.chicken = chicken;
             this.soundTask = soundTask;
+            this.flight = flight;
             this.duration = duration;
         }
 
         public Player getPlayer() { return player; }
         public Chicken getChicken() { return chicken; }
         public BukkitTask getSoundTask() { return soundTask; }
+        public Flight getFlight() { return flight; }
         public int getDuration() { return duration; }
         public void decrementDuration() { this.duration--; }
     }
@@ -73,12 +85,14 @@ public class FlightManager implements Listener {
             String path = "flights." + flightName;
 
             try {
-                EntityType creature = EntityType.valueOf(config.getString(path + ".creature", "ENDER_DRAGON"));
+                EntityType creature = EntityType.valueOf(config.getString(path + ".creature", "PHANTOM"));
                 double cost = config.getDouble(path + ".cost", 0.0);
 
                 Flight flight = new Flight(flightName, creature, cost);
                 flight.setInvulnerable(config.getBoolean(path + ".invulnerable", true));
                 flight.setParachuteTime(config.getInt(path + ".parachute", 5));
+                flight.setAllowEnderpearlInFlight(config.getBoolean(path + ".allow_enderpearl_in_flight", false));
+                flight.setAllowEnderpearlInParachute(config.getBoolean(path + ".allow_enderpearl_in_parachute", false));
 
                 List<String> waypointStrings = config.getStringList(path + ".waypoints");
                 for (String wpString : waypointStrings) {
@@ -105,18 +119,23 @@ public class FlightManager implements Listener {
 
     private void updateAllSigns() {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
+            String signKey = plugin.getConfigManager().getSignKey();
+
             for (World world : plugin.getServer().getWorlds()) {
                 for (Chunk chunk : world.getLoadedChunks()) {
                     for (BlockState tile : chunk.getTileEntities()) {
                         if (tile instanceof org.bukkit.block.Sign) {
                             org.bukkit.block.Sign sign = (org.bukkit.block.Sign) tile;
                             String line0 = ChatColor.stripColor(sign.getLine(0));
-                            if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase("FlappyMobs")) {
-                                String flightName = sign.getLine(1);
+                            if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase(signKey.replace("[", "").replace("]", ""))) {
+                                String flightName = ChatColor.stripColor(sign.getLine(1));
                                 Flight flight = getFlight(flightName);
                                 if (flight != null) {
-                                    sign.setLine(2, flight.getCreature().name());
-                                    sign.setLine(3, plugin.getEconomyManager().formatAmount(flight.getCost()));
+                                    // Update sign with configured colors
+                                    sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
+                                    sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
+                                    sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
+                                    sign.setLine(3, plugin.getConfigManager().getSignLine3Color() + plugin.getEconomyManager().formatAmount(flight.getCost()));
                                     sign.update();
                                 }
                             }
@@ -135,6 +154,8 @@ public class FlightManager implements Listener {
         config.set(path + ".cost", flight.getCost());
         config.set(path + ".invulnerable", flight.isInvulnerable());
         config.set(path + ".parachute", flight.getParachuteTime());
+        config.set(path + ".allow_enderpearl_in_flight", flight.isAllowEnderpearlInFlight());
+        config.set(path + ".allow_enderpearl_in_parachute", flight.isAllowEnderpearlInParachute());
 
         List<String> waypointStrings = new ArrayList<>();
         for (Waypoint wp : flight.getWaypoints()) {
@@ -252,6 +273,13 @@ public class FlightManager implements Listener {
 
         LivingEntity creature = (LivingEntity) entity;
 
+        // Prevent PHANTOM from burning in daylight
+        if (creature instanceof Phantom) {
+            Phantom phantom = (Phantom) creature;
+            phantom.setFireTicks(0);
+            phantom.setShouldBurnInDay(false);
+        }
+
         // Apply creature configuration
         ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
         if (config != null) {
@@ -282,6 +310,9 @@ public class FlightManager implements Listener {
 
         FlightSession session = new FlightSession(player, flight, creature);
         activeSessions.put(player.getUniqueId(), session);
+
+        // Add mace protection
+        maceProtection.add(player.getUniqueId());
 
         session.setCurrentWaypointIndex(1);
         calculateMovement(session);
@@ -346,6 +377,11 @@ public class FlightManager implements Listener {
     private void moveCreature(FlightSession session) {
         Entity creature = session.getCreature();
 
+        // Prevent PHANTOM from burning
+        if (creature instanceof Phantom) {
+            creature.setFireTicks(0);
+        }
+
         if (!creature.isValid() || creature.getPassengers().isEmpty()) {
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Creature invalid or no passengers. Ending flight.");
@@ -369,7 +405,6 @@ public class FlightManager implements Listener {
         Location currentLoc = creature.getLocation();
         Location targetLoc = target.getAsLocation();
 
-        // Check if it's the last waypoint
         boolean isLastWaypoint = (wpIndex == flight.getWaypoints().size() - 1);
 
         double newX = currentLoc.getX() + session.getXPerTick();
@@ -430,8 +465,11 @@ public class FlightManager implements Listener {
             if (!completed) {
                 int parachuteTime = session.getFlight().getParachuteTime();
                 if (parachuteTime >= 0) {
-                    deployParachute(player, parachuteTime);
+                    deployParachute(player, session.getFlight(), parachuteTime);
                 }
+            } else {
+                // Completed - remove mace protection
+                maceProtection.remove(player.getUniqueId());
             }
 
             creature.remove();
@@ -441,12 +479,15 @@ public class FlightManager implements Listener {
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_success"));
         }
 
+        // Clear dismount confirmation
+        dismountConfirmations.remove(player.getUniqueId());
+
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Flight ended for " + player.getName() + " (completed=" + completed + ")");
         }
     }
 
-    private void deployParachute(Player player, int duration) {
+    private void deployParachute(Player player, Flight flight, int duration) {
         removeParachute(player);
 
         playSound(player, player.getLocation(), "parachute_deploy");
@@ -477,12 +518,12 @@ public class FlightManager implements Listener {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, effectDuration, 0, false, false));
 
         BukkitTask soundTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!player.isOnGround() && !isInWater(player) && activeParachutes.containsKey(player.getUniqueId())) {
+            if (!player.isOnGround() && !isInLiquid(player) && activeParachutes.containsKey(player.getUniqueId())) {
                 playSound(player, player.getLocation(), "parachute_descent");
             }
         }, 0L, 20L);
 
-        ParachuteData data = new ParachuteData(player, chicken, soundTask, duration);
+        ParachuteData data = new ParachuteData(player, chicken, soundTask, flight, duration);
         activeParachutes.put(player.getUniqueId(), data);
 
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -497,21 +538,31 @@ public class FlightManager implements Listener {
         }
     }
 
-    private boolean isInWater(Player player) {
+    private boolean isInLiquid(Player player) {
         Material blockType = player.getLocation().getBlock().getType();
-        return blockType == Material.WATER || blockType == Material.BUBBLE_COLUMN;
+        return blockType == Material.WATER || 
+               blockType == Material.BUBBLE_COLUMN || 
+               blockType == Material.LAVA;
     }
 
     private void checkParachute(Player player) {
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data == null) return;
 
-        // Check if player is on ground OR in water
-        if (player.isOnGround() || isInWater(player)) {
+        // Check if player is on ground OR in liquid
+        if (player.isOnGround() || isInLiquid(player)) {
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground/water - removing parachute");
+                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground/liquid - removing parachute");
             }
+
+            // Play landing sound based on block type
+            Block groundBlock = player.getLocation().subtract(0, 1, 0).getBlock();
+            playLandingSound(player, groundBlock);
+
             removeParachute(player);
+
+            // Remove mace protection
+            maceProtection.remove(player.getUniqueId());
             return;
         }
 
@@ -535,6 +586,70 @@ public class FlightManager implements Listener {
                 }
                 removeParachute(player);
             }
+        }
+    }
+
+    private void playLandingSound(Player player, Block block) {
+        Material blockType = block.getType();
+        String soundName = getBlockFallSound(blockType);
+
+        try {
+            Sound sound = Sound.valueOf(soundName);
+            player.playSound(player.getLocation(), sound, SoundCategory.BLOCKS, 0.3f, 1.0f);
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Played landing sound: " + soundName);
+            }
+        } catch (IllegalArgumentException e) {
+            // Fallback to generic sound
+            player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_SMALL_FALL, SoundCategory.BLOCKS, 0.3f, 1.0f);
+        }
+    }
+
+    private String getBlockFallSound(Material material) {
+        // Map material to appropriate fall sound
+        switch (material) {
+            case ANCIENT_DEBRIS: return "BLOCK_ANCIENT_DEBRIS_FALL";
+            case ANVIL: case CHIPPED_ANVIL: case DAMAGED_ANVIL: return "BLOCK_ANVIL_FALL";
+            case BAMBOO: case BAMBOO_SAPLING: return "BLOCK_BAMBOO_FALL";
+            case BASALT: case SMOOTH_BASALT: case POLISHED_BASALT: return "BLOCK_BASALT_FALL";
+            case BONE_BLOCK: return "BLOCK_BONE_BLOCK_FALL";
+            case CHAIN: return "BLOCK_CHAIN_FALL";
+            case GLASS: case GLASS_PANE: case TINTED_GLASS: return "BLOCK_GLASS_FALL";
+            case GRASS_BLOCK: case SHORT_GRASS: case TALL_GRASS: return "BLOCK_GRASS_FALL";
+            case GRAVEL: return "BLOCK_GRAVEL_FALL";
+            case HONEY_BLOCK: return "BLOCK_HONEY_BLOCK_FALL";
+            case LADDER: return "BLOCK_LADDER_FALL";
+            case LANTERN: case SOUL_LANTERN: return "BLOCK_LANTERN_FALL";
+            case LODESTONE: return "BLOCK_LODESTONE_FALL";
+            case IRON_BLOCK: case GOLD_BLOCK: return "BLOCK_METAL_FALL";
+            case NETHER_BRICKS: case CHISELED_NETHER_BRICKS: case CRACKED_NETHER_BRICKS: return "BLOCK_NETHER_BRICKS_FALL";
+            case NETHER_GOLD_ORE: return "BLOCK_NETHER_GOLD_ORE_FALL";
+            case NETHERITE_BLOCK: return "BLOCK_NETHERITE_BLOCK_FALL";
+            case NETHERRACK: return "BLOCK_NETHERRACK_FALL";
+            case CRIMSON_NYLIUM: case WARPED_NYLIUM: return "BLOCK_NYLIUM_FALL";
+            case SAND: case RED_SAND: return "BLOCK_SAND_FALL";
+            case SCAFFOLDING: return "BLOCK_SCAFFOLDING_FALL";
+            case SHROOMLIGHT: return "BLOCK_SHROOMLIGHT_FALL";
+            case SLIME_BLOCK: return "BLOCK_SLIME_BLOCK_FALL";
+            case SNOW: case SNOW_BLOCK: return "BLOCK_SNOW_FALL";
+            case SOUL_SAND: return "BLOCK_SOUL_SAND_FALL";
+            case SOUL_SOIL: return "BLOCK_SOUL_SOIL_FALL";
+            case STONE: case COBBLESTONE: case STONE_BRICKS: return "BLOCK_STONE_FALL";
+            case NETHER_WART_BLOCK: case WARPED_WART_BLOCK: return "BLOCK_WART_BLOCK_FALL";
+            case WEEPING_VINES: case WEEPING_VINES_PLANT: return "BLOCK_WEEPING_VINES_FALL";
+            case OAK_WOOD: case SPRUCE_WOOD: case BIRCH_WOOD: case JUNGLE_WOOD: 
+            case ACACIA_WOOD: case DARK_OAK_WOOD: case MANGROVE_WOOD: case CHERRY_WOOD:
+            case OAK_PLANKS: case SPRUCE_PLANKS: case BIRCH_PLANKS: case JUNGLE_PLANKS:
+            case ACACIA_PLANKS: case DARK_OAK_PLANKS: case MANGROVE_PLANKS: case CHERRY_PLANKS:
+                return "BLOCK_WOOD_FALL";
+            case WHITE_WOOL: case ORANGE_WOOL: case MAGENTA_WOOL: case LIGHT_BLUE_WOOL:
+            case YELLOW_WOOL: case LIME_WOOL: case PINK_WOOL: case GRAY_WOOL:
+            case LIGHT_GRAY_WOOL: case CYAN_WOOL: case PURPLE_WOOL: case BLUE_WOOL:
+            case BROWN_WOOL: case GREEN_WOOL: case RED_WOOL: case BLACK_WOOL:
+                return "BLOCK_WOOL_FALL";
+            default:
+                return "ENTITY_GENERIC_SMALL_FALL";
         }
     }
 
@@ -590,6 +705,7 @@ public class FlightManager implements Listener {
         // Check if player is in parachute
         if (activeParachutes.containsKey(player.getUniqueId())) {
             removeParachute(player);
+            maceProtection.remove(player.getUniqueId());
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
             return;
         }
@@ -609,6 +725,77 @@ public class FlightManager implements Listener {
             // First shift press - ask for confirmation
             dismountConfirmations.put(player.getUniqueId(), currentTime);
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_confirm"));
+
+            // Auto-expire confirmation after 3 seconds
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Long storedTime = dismountConfirmations.get(player.getUniqueId());
+                if (storedTime != null && storedTime.equals(currentTime)) {
+                    dismountConfirmations.remove(player.getUniqueId());
+                }
+            }, 60L); // 3 seconds = 60 ticks
+        }
+    }
+
+    @EventHandler
+    public void onElytraToggle(PlayerToggleElytraEvent event) {
+        Player player = event.getPlayer();
+
+        // If player deploys elytra while in parachute, remove parachute
+        if (event.isFlying() && activeParachutes.containsKey(player.getUniqueId())) {
+            removeParachute(player);
+            maceProtection.remove(player.getUniqueId());
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onEnderpearlThrow(PlayerTeleportEvent event) {
+        if (event.getCause() != PlayerTeleportEvent.TeleportCause.ENDER_PEARL) return;
+
+        Player player = event.getPlayer();
+
+        // Check if player is in flight
+        FlightSession session = activeSessions.get(player.getUniqueId());
+        if (session != null) {
+            if (!session.getFlight().isAllowEnderpearlInFlight()) {
+                event.setCancelled(true);
+                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight"));
+                return;
+            }
+        }
+
+        // Check if player is in parachute
+        ParachuteData data = activeParachutes.get(player.getUniqueId());
+        if (data != null) {
+            if (!data.getFlight().isAllowEnderpearlInParachute()) {
+                event.setCancelled(true);
+                player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute"));
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onMaceAttack(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player)) return;
+
+        Player player = (Player) event.getDamager();
+
+        // Check if player has mace protection
+        if (!maceProtection.contains(player.getUniqueId())) return;
+
+        // Check if player is holding a mace
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item.getType() != Material.MACE) return;
+
+        // Remove fall damage bonus
+        double originalDamage = event.getDamage();
+        double baseDamage = 5.0; // Base mace damage
+
+        event.setDamage(baseDamage);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Mace protection: reduced damage from " + originalDamage + " to " + baseDamage);
         }
     }
 
@@ -644,6 +831,7 @@ public class FlightManager implements Listener {
         }
         activeParachutes.clear();
         dismountConfirmations.clear();
+        maceProtection.clear();
     }
 
     public void reload() {

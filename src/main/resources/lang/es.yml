@@ -28,6 +28,10 @@ dismount_confirm: "&e¿Seguro que quieres saltar? Pulsa SHIFT de nuevo en 3 segu
 # Dismount
 dismount_success: "&aHas aterrizado correctamente en el destino."
 
+# Enderpearl
+enderpearl_disabled_flight: "&cNo puedes usar enderpearls durante este vuelo."
+enderpearl_disabled_parachute: "&cNo puedes usar enderpearls durante el descenso en paracaídas."
+
 # List Command
 list_header: "&6=== Vuelos Disponibles ==="
 list_empty: "&7No hay vuelos disponibles."
@@ -42,6 +46,8 @@ info_cost: "&eCosto: &f{cost}"
 info_waypoints: "&eWaypoints: &f{waypoints}"
 info_invulnerable: "&eInvulnerable: &f{invulnerable}"
 info_parachute: "&eParacaídas: &f{parachute}s"
+info_enderpearl_flight: "&eEnderpearl en vuelo: &f{value}"
+info_enderpearl_parachute: "&eEnderpearl en paracaídas: &f{value}"
 info_footer: "&7Usa /fp flight {flight} para iniciar este vuelo."
 
 # Create/Edit Commands
@@ -67,7 +73,7 @@ delete_success: "&aVuelo &e{flight} &aeliminado correctamente."
 
 # Edit Command
 edit_usage: "&cUso: /fp edit <flight> <property> <value>"
-edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute"
+edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute, enderpearl_flight, enderpearl_parachute"
 edit_invalid_value: "&cValor inválido para la propiedad &e{property}&c."
 edit_success: "&aPropiedad &e{property} &adel vuelo &e{flight} &aactualizada a: &f{value}"
 
