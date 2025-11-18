@@ -110,84 +110,139 @@ creatures:
     scale: 1.0
     silent: true
 
-# MESSAGES
-# Enable or disable messages. Change true to false to disable.
-# message_key: true/false
+# MESSAGES CONTROL
+# Enable or disable specific messages
+# Structure: message_key: { enabled: true/false }
 messages:
 
   # General
-  prefix: true
-  no_permission: true
-  player_only: true
-  reload_success: true
-  invalid_creature: true
-  creature_disabled: true
-  error_generic: true
-  error_economy: true
+  prefix:
+    enabled: true
+  no_permission:
+    enabled: true
+  player_only:
+    enabled: true
+  reload_success:
+    enabled: true
+  invalid_creature:
+    enabled: true
+  creature_disabled:
+    enabled: true
+  error_generic:
+    enabled: true
+  error_economy:
+    enabled: true
 
   # Flight
-  flight_started: true
-  flight_not_found: true
-  already_riding: true
-  not_riding: true
-  flight_dismounted: true
-  dismount_success: true
-  insufficient_funds: true
-  payment_success: true
+  flight_started:
+    enabled: true
+  flight_not_found:
+    enabled: true
+  already_riding:
+    enabled: true
+  not_riding:
+    enabled: true
+  flight_dismounted:
+    enabled: true
+  dismount_success:
+    enabled: true
+  insufficient_funds:
+    enabled: true
+  payment_success:
+    enabled: true
 
   # Parachute
-  parachute_activated: true
-  parachute_destroyed: true
-  parachute_cancelled: true
+  parachute_activated:
+    enabled: true
+  parachute_destroyed:
+    enabled: true
+  parachute_cancelled:
+    enabled: true
 
   # Enderpearl
-  enderpearl_disabled_flight: true
-  enderpearl_disabled_parachute: true
+  enderpearl_disabled_flight:
+    enabled: true
+  enderpearl_disabled_parachute:
+    enabled: true
 
   # List Command
-  list_header: true
-  list_empty: true
-  list_entry: true
-  list_footer: true
+  list_header:
+    enabled: true
+  list_empty:
+    enabled: true
+  list_entry:
+    enabled: true
+  list_footer:
+    enabled: true
 
   # Info Command
-  info_header: true
-  info_name: true
-  info_creature: true
-  info_cost: true
-  info_waypoints: true
-  info_invulnerable: true
-  info_parachute: true
-  info_enderpearl_flight: true
-  info_enderpearl_parachute: true
-  info_footer: true
+  info_header:
+    enabled: true
+  info_name:
+    enabled: true
+  info_creature:
+    enabled: true
+  info_cost:
+    enabled: true
+  info_waypoints:
+    enabled: true
+  info_invulnerable:
+    enabled: true
+  info_parachute:
+    enabled: true
+  info_enderpearl_flight:
+    enabled: true
+  info_enderpearl_parachute:
+    enabled: true
+  info_footer:
+    enabled: true
 
   # Create/Edit Commands
-  create_usage: true
-  create_started: true
-  create_exists: true
-  waypoint_added: true
-  waypoint_removed: true
-  waypoint_none_to_remove: true
-  save_no_flight: true
-  save_no_waypoints: true
-  save_success: true
-  cancel_success: true
+  create_usage:
+    enabled: true
+  create_started:
+    enabled: true
+  create_exists:
+    enabled: true
+  waypoint_added:
+    enabled: true
+  waypoint_removed:
+    enabled: true
+  waypoint_none_to_remove:
+    enabled: true
+  save_no_flight:
+    enabled: true
+  save_no_waypoints:
+    enabled: true
+  save_success:
+    enabled: true
+  cancel_success:
+    enabled: true
 
   # Delete Command
-  delete_usage: true
-  delete_success: true
+  delete_usage:
+    enabled: true
+  delete_success:
+    enabled: true
 
   # Edit Command
-  edit_usage: true
-  edit_invalid_property: true
-  edit_invalid_value: true
-  edit_success: true
+  edit_usage:
+    enabled: true
+  edit_invalid_property:
+    enabled: true
+  edit_invalid_value:
+    enabled: true
+  edit_success:
+    enabled: true
 
   # Other Commands
-  removemobs_success: true
+  removemobs_success:
+    enabled: true
 
   # Signs
-  sign_header: true
-  sign_created: true
-  sign_invalid: true
+  sign_header:
+    enabled: true
+  sign_created:
+    enabled: true
+  sign_invalid:
+    enabled: true

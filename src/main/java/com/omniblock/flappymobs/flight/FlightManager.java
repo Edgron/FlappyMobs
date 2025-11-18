@@ -248,6 +248,72 @@ public class FlightManager implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        Block block = event.getClickedBlock();
+        if (block == null) return;
+
+        Material type = block.getType();
+        if (!type.name().contains("SIGN")) return;
+
+        if (!(block.getState() instanceof Sign)) return;
+
+        Sign sign = (Sign) block.getState();
+        Player player = event.getPlayer();
+
+        String signKey = plugin.getConfigManager().getSignKey();
+
+        String signKeyStripped = stripAllColors(
+            ChatColor.translateAlternateColorCodes('&', signKey))
+            .replace("[", "").replace("]", "").trim();
+
+        String line0 = sign.getLine(0);
+        if (line0 == null || line0.isEmpty()) return;
+
+        String line0Stripped = stripAllColors(line0)
+            .replace("[", "").replace("]", "").trim();
+
+        // IMPORTANTE: Solo procesar si ES un cartel de FlappyMobs
+        if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
+
+        // A partir de aquí, es un cartel de FlappyMobs
+        String flightName = sign.getLine(1);
+        if (flightName == null || flightName.isEmpty()) return;
+
+        String flightNameStripped = stripAllColors(flightName).trim();
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] FlappyMobs sign clicked:");
+            plugin.getLogger().info("[DEBUG]   Line 0 raw: '" + line0 + "'");
+            plugin.getLogger().info("[DEBUG]   Line 0 stripped: '" + line0Stripped + "'");
+            plugin.getLogger().info("[DEBUG]   Line 1 raw: '" + flightName + "'");
+            plugin.getLogger().info("[DEBUG]   Line 1 stripped: '" + flightNameStripped + "'");
+        }
+
+        Flight flight = getFlight(flightNameStripped);
+
+        if (flight == null) {
+            // Solo mostrar error si ES cartel de FlappyMobs pero flight no existe
+            String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", 
+                "flight", flightNameStripped);
+            if (message != null) player.sendMessage(message);
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().warning("[DEBUG] Flight '" + flightNameStripped + "' not found in FlappyMobs sign!");
+            }
+            return;
+        }
+
+        event.setCancelled(true);
+        startFlight(player, flight);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' from sign click");
+        }
+    }
+
     public void saveFlight(Flight flight) {
         FileConfiguration config = plugin.getConfigManager().getFlightsConfig();
         String path = "flights." + flight.getName();
@@ -856,95 +922,6 @@ public class FlightManager implements Listener {
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Prevented dismount for player " + player.getName() + 
                     " - allow_shift_dismount is false");
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-
-        Block block = event.getClickedBlock();
-        if (block == null) return;
-
-        Material type = block.getType();
-        if (!type.name().contains("SIGN")) return;
-
-        if (!(block.getState() instanceof Sign)) return;
-
-        Sign sign = (Sign) block.getState();
-        Player player = event.getPlayer();
-
-        String signKey = plugin.getConfigManager().getSignKey();
-
-        String signKeyStripped = stripAllColors(
-            ChatColor.translateAlternateColorCodes('&', signKey))
-            .replace("[", "").replace("]", "").trim();
-
-        String line0 = sign.getLine(0);
-        if (line0 == null || line0.isEmpty()) return;
-
-        String line0Stripped = stripAllColors(line0)
-            .replace("[", "").replace("]", "").trim();
-
-        if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
-
-        String flightName = sign.getLine(1);
-        if (flightName == null || flightName.isEmpty()) return;
-
-        String flightNameStripped = stripAllColors(flightName).trim();
-
-        if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] Sign clicked:");
-            plugin.getLogger().info("[DEBUG]   Line 0 raw: '" + line0 + "'");
-            plugin.getLogger().info("[DEBUG]   Line 0 stripped: '" + line0Stripped + "'");
-            plugin.getLogger().info("[DEBUG]   Line 1 raw: '" + flightName + "'");
-            plugin.getLogger().info("[DEBUG]   Line 1 stripped: '" + flightNameStripped + "'");
-            plugin.getLogger().info("[DEBUG]   Sign key config: '" + signKey + "'");
-            plugin.getLogger().info("[DEBUG]   Sign key stripped: '" + signKeyStripped + "'");
-        }
-
-        Flight flight = getFlight(flightNameStripped);
-
-        if (flight == null) {
-            String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", 
-                "flight", flightNameStripped);
-            if (message != null) player.sendMessage(message);
-
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().warning("[DEBUG] Flight '" + flightNameStripped + "' not found!");
-            }
-            return;
-        }
-
-        event.setCancelled(true);
-        startFlight(player, flight);
-
-        if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' from sign click");
-        }
-
-        // Check for enderpearl
-        ItemStack item = event.getItem();
-        if (item != null && item.getType() == Material.ENDER_PEARL) {
-            FlightSession session = activeSessions.get(player.getUniqueId());
-            if (session != null) {
-                if (!session.getFlight().isAllowEnderpearlInFlight()) {
-                    event.setCancelled(true);
-                    String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight");
-                    if (message != null) player.sendMessage(message);
-                    return;
-                }
-            }
-
-            ParachuteData parachuteData = activeParachutes.get(player.getUniqueId());
-            if (parachuteData != null) {
-                if (!parachuteData.getFlight().isAllowEnderpearlInParachute()) {
-                    event.setCancelled(true);
-                    String message = plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute");
-                    if (message != null) player.sendMessage(message);
-                    return;
-                }
             }
         }
     }
