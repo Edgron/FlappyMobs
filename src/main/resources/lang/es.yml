@@ -1,89 +1,21 @@
-# Spanish Messages for FlappyMobs
-# To disable a message, simply comment it out with # or delete the line
-# Do NOT set messages to "none" or "null"
-
-prefix: "&8[&6FlappyMobs&8] &r"
-
-# General
-player_only: "&cEste comando solo puede ser ejecutado por jugadores."
-no_permission: "&cNo tienes permiso para hacer esto."
-error_generic: "&cHa ocurrido un error. Contacta con un administrador."
-error_economy: "&cError al procesar el pago. Sistema de economía no disponible."
-
-# Flight Messages
-flight_started: "&aVuelo iniciado. ¡Disfruta el viaje!"
-flight_not_found: "&cEl vuelo &e{flight} &cno existe."
-flight_dismounted: "&eHas saltado de la criatura."
-already_riding: "&cYa estás montando en una criatura."
-not_riding: "&cNo estás montando en ninguna criatura."
-insufficient_funds: "&cNo tienes suficiente dinero. Necesitas: &e{cost}"
-payment_success: "&aPagado: &e{cost}"
-
-# Command Dismount
-command_dismount_disabled: "&cNo puedes usar /fp dismount en este vuelo."
-
-# Parachute
-parachute_activated: "&aParacaídas desplegado. Descenso seguro activado."
-parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"
-parachute_cancelled: "&eParacaídas desactivado manualmente."
-
-# Dismount (comment these lines to disable these messages)
-# dismount_success: "&aHas aterrizado correctamente en el destino."
-
-# Enderpearl
-enderpearl_disabled_flight: "&cNo puedes usar enderpearls durante este vuelo."
-enderpearl_disabled_parachute: "&cNo puedes usar enderpearls durante el descenso en paracaídas."
-
-# List Command
-list_header: "&6=== Vuelos Disponibles ==="
-list_empty: "&7No hay vuelos disponibles."
-list_entry: "&e{flight} &7- &f{creature} &7- &a{cost}"
-list_footer: "&7Usa /fp flight <nombre> para iniciar un vuelo."
-
-# Info Command
-info_header: "&6=== Información del Vuelo ==="
-info_name: "&eNombre: &f{flight}"
-info_creature: "&eCriatura: &f{creature}"
-info_cost: "&eCosto: &f{cost}"
-info_waypoints: "&eWaypoints: &f{waypoints}"
-info_invulnerable: "&eInvulnerable: &f{invulnerable}"
-info_parachute: "&eParacaídas: &f{parachute}s"
-info_enderpearl_flight: "&eEnderpearl en vuelo: &f{value}"
-info_enderpearl_parachute: "&eEnderpearl en paracaídas: &f{value}"
-info_footer: "&7Usa /fp flight {flight} para iniciar este vuelo."
-
-# Create/Edit Commands
-create_usage: "&cUso: /fp create <nombre> <criatura> [costo]"
-create_started: "&aCreando vuelo: &e{flight}&a. Usa /fp setwp para añadir waypoints."
-create_exists: "&cYa existe un vuelo con ese nombre."
-invalid_creature: "&cCriatura inválida o no habilitada."
-creature_disabled: "&cEsa criatura está deshabilitada en la configuración."
-
-waypoint_added: "&aWaypoint #{number} añadido en tu posición actual."
-waypoint_removed: "&cÚltimo waypoint eliminado."
-waypoint_none_to_remove: "&cNo hay waypoints para eliminar."
-
-save_no_flight: "&cNo estás creando ningún vuelo."
-save_no_waypoints: "&cNecesitas al menos 2 waypoints para guardar el vuelo."
-save_success: "&aVuelo &e{flight} &aguardado con &e{waypoints} &awaypoints."
-
-cancel_success: "&cCreación de vuelo cancelada."
-
-# Delete Command
-delete_usage: "&cUso: /fp delete <nombre>"
-delete_success: "&aVuelo &e{flight} &aeliminado correctamente."
-
-# Edit Command
-edit_usage: "&cUso: /fp edit <flight> <property> <value>"
-edit_invalid_property: "&cPropiedad inválida. Usa: creature, cost, invulnerable, parachute, enderpearl_flight, enderpearl_parachute, shift_dismount, command_dismount"
-edit_invalid_value: "&cValor inválido para la propiedad &e{property}&c."
-edit_success: "&aPropiedad &e{property} &adel vuelo &e{flight} &aactualizada a: &f{value}"
-
-# Other Commands
-removemobs_success: "&aEliminadas &e{count} &acriaturas sin jinete."
-reload_success: "&aConfiguración recargada correctamente."
-
-# Signs
-sign_header: "&8[&6FlappyMobs&8]"
-sign_created: "&aCartel creado correctamente."
-sign_invalid: "&cCartel inválido. Asegúrate de poner el nombre del vuelo en la segunda línea."
+prefix:
+  enabled: true
+  message: "&8[&6FlappyMobs&8] &r"
+dismount_success:
+  enabled: false
+  message: "&aHas aterrizado correctamente en el destino."
+command_dismount_disabled:
+  enabled: true
+  message: "&cNo puedes usar /fp dismount en este vuelo."
+flight_started:
+  enabled: true
+  message: "&aVuelo iniciado. ¡Disfruta el viaje!"
+flight_dismounted:
+  enabled: true
+  message: "&eHas saltado de la criatura."
+flight_not_found:
+  enabled: true
+  message: "&cEl vuelo &e{flight} &cno existe."
+not_riding:
+  enabled: true
+  message: "&cNo estás montando en ninguna criatura."
