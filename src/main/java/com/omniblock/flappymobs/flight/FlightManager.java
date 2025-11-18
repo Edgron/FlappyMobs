@@ -14,7 +14,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -33,6 +33,7 @@ public class FlightManager implements Listener {
     private final Map<UUID, Flight> creatingFlights;
     private final Map<UUID, ParachuteData> activeParachutes;
     private final Map<UUID, Long> dismountConfirmations;
+    private final Map<UUID, Long> parachuteStartTime;
     private final Set<UUID> maceProtection;
 
     public FlightManager(FlappyMobs plugin) {
@@ -42,6 +43,7 @@ public class FlightManager implements Listener {
         this.creatingFlights = new HashMap<>();
         this.activeParachutes = new HashMap<>();
         this.dismountConfirmations = new HashMap<>();
+        this.parachuteStartTime = new HashMap<>();
         this.maceProtection = new HashSet<>();
         loadFlights();
 
@@ -214,7 +216,6 @@ public class FlightManager implements Listener {
             return;
         }
 
-        // Check and charge cost
         if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
             if (!plugin.getEconomyManager().isEnabled()) {
                 player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("error_economy"));
@@ -510,6 +511,9 @@ public class FlightManager implements Listener {
         ParachuteData data = new ParachuteData(player, chicken, soundTask, flight, duration);
         activeParachutes.put(player.getUniqueId(), data);
 
+        // Store parachute start time
+        parachuteStartTime.put(player.getUniqueId(), System.currentTimeMillis());
+
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             checkParachute(player);
         }, 1L, 1L);
@@ -658,6 +662,7 @@ public class FlightManager implements Listener {
         }
 
         player.removePotionEffect(PotionEffectType.SLOW_FALLING);
+        parachuteStartTime.remove(player.getUniqueId());
     }
 
     @EventHandler
@@ -689,26 +694,41 @@ public class FlightManager implements Listener {
 
         if (!event.isSneaking()) return;
 
+        // FIX 1 & 3: Check parachute FIRST with 1 second delay
         if (activeParachutes.containsKey(player.getUniqueId())) {
+            Long startTime = parachuteStartTime.get(player.getUniqueId());
+            if (startTime != null) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                if (elapsed < 1000) {
+                    // Less than 1 second, ignore
+                    return;
+                }
+            }
+
+            // After 1 second, allow cancellation
             removeParachute(player);
             maceProtection.remove(player.getUniqueId());
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
             return;
         }
 
+        // FIX 1: Flight dismount confirmation (only if NOT in parachute)
         if (!activeSessions.containsKey(player.getUniqueId())) return;
 
         long currentTime = System.currentTimeMillis();
         Long lastConfirm = dismountConfirmations.get(player.getUniqueId());
 
         if (lastConfirm != null && (currentTime - lastConfirm) <= 3000) {
+            // Second shift press within 3 seconds - dismount
             dismountConfirmations.remove(player.getUniqueId());
             endFlight(player, false);
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_dismounted"));
         } else {
+            // First shift press - ask for confirmation
             dismountConfirmations.put(player.getUniqueId(), currentTime);
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_confirm"));
 
+            // Auto-expire confirmation after 3 seconds
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Long storedTime = dismountConfirmations.get(player.getUniqueId());
                 if (storedTime != null && storedTime.equals(currentTime)) {
@@ -718,26 +738,38 @@ public class FlightManager implements Listener {
         }
     }
 
+    // FIX 2: Block enderpearl LAUNCH instead of teleport
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onEnderpearlThrow(PlayerTeleportEvent event) {
-        if (event.getCause() != PlayerTeleportEvent.TeleportCause.ENDER_PEARL) return;
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        if (!(event.getEntity() instanceof EnderPearl)) return;
+        if (!(event.getEntity().getShooter() instanceof Player)) return;
 
-        Player player = event.getPlayer();
+        Player player = (Player) event.getEntity().getShooter();
 
+        // Check if player is in flight
         FlightSession session = activeSessions.get(player.getUniqueId());
         if (session != null) {
             if (!session.getFlight().isAllowEnderpearlInFlight()) {
                 event.setCancelled(true);
                 player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_flight"));
+
+                // Refund the enderpearl
+                ItemStack pearl = new ItemStack(Material.ENDER_PEARL, 1);
+                player.getInventory().addItem(pearl);
                 return;
             }
         }
 
+        // Check if player is in parachute
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data != null) {
             if (!data.getFlight().isAllowEnderpearlInParachute()) {
                 event.setCancelled(true);
                 player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("enderpearl_disabled_parachute"));
+
+                // Refund the enderpearl
+                ItemStack pearl = new ItemStack(Material.ENDER_PEARL, 1);
+                player.getInventory().addItem(pearl);
                 return;
             }
         }
@@ -796,6 +828,7 @@ public class FlightManager implements Listener {
         }
         activeParachutes.clear();
         dismountConfirmations.clear();
+        parachuteStartTime.clear();
         maceProtection.clear();
     }
 

@@ -23,7 +23,7 @@ parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"
 parachute_cancelled: "&eParacaídas desactivado manualmente."
 
 # Dismount Confirmation
-dismount_confirm: "&e¿Seguro que quieres saltar? Pulsa SHIFT de nuevo en 3 segundos."
+dismount_confirm: "&e¿Seguro que quieres desmontar? Pulsa SHIFT de nuevo."
 
 # Dismount
 dismount_success: "&aHas aterrizado correctamente en el destino."
