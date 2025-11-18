@@ -45,6 +45,11 @@ public class ConfigManager {
         flightsConfig = YamlConfiguration.loadConfiguration(flightsFile);
     }
 
+    public void reload() {
+        plugin.reloadConfig();
+        reloadFlightsConfig();
+    }
+
     public boolean isDebugEnabled() {
         return plugin.getConfig().getBoolean("general.debug", false);
     }

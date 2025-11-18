@@ -3,11 +3,14 @@ package com.omniblock.flappymobs.flight;
 import com.omniblock.flappymobs.FlappyMobs;
 import com.omniblock.flappymobs.config.ConfigManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.block.BlockState;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Entity;
@@ -112,11 +115,10 @@ public class FlightManager implements Listener {
     private void updateAllSigns() {
         // This will be called after reload to update all signs
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            plugin.getServer().getWorlds().forEach(world -> {
-                world.getLoadedChunks().forEach(chunk -> {
-                    Arrays.stream(chunk.getTileEntities())
-                        .filter(tile -> tile instanceof org.bukkit.block.Sign)
-                        .forEach(tile -> {
+            for (World world : plugin.getServer().getWorlds()) {
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    for (BlockState tile : chunk.getTileEntities()) {
+                        if (tile instanceof org.bukkit.block.Sign) {
                             org.bukkit.block.Sign sign = (org.bukkit.block.Sign) tile;
                             String line0 = org.bukkit.ChatColor.stripColor(sign.getLine(0));
                             if (line0 != null && line0.replace("[", "").replace("]", "").equalsIgnoreCase("FlappyMobs")) {
@@ -128,9 +130,10 @@ public class FlightManager implements Listener {
                                     sign.update();
                                 }
                             }
-                        });
-                });
-            });
+                        }
+                    }
+                }
+            }
         });
     }
 
