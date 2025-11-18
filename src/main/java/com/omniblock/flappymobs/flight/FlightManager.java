@@ -7,7 +7,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -15,8 +14,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerToggleElytraEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -131,7 +130,6 @@ public class FlightManager implements Listener {
                                 String flightName = ChatColor.stripColor(sign.getLine(1));
                                 Flight flight = getFlight(flightName);
                                 if (flight != null) {
-                                    // Update sign with configured colors
                                     sign.setLine(0, plugin.getConfigManager().getSignLine0Color() + signKey);
                                     sign.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightName);
                                     sign.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
@@ -247,13 +245,9 @@ public class FlightManager implements Listener {
             }
         }
 
-        // Play start sound
         playSound(player, player.getLocation(), "start");
-
-        // Spawn GUST particle at player's feet
         player.getWorld().spawnParticle(Particle.GUST, player.getLocation(), 1);
 
-        // Teleport player to first waypoint
         Waypoint firstWP = flight.getWaypoints().get(0);
         Location startLoc = firstWP.getAsLocation();
         player.teleport(startLoc);
@@ -262,7 +256,6 @@ public class FlightManager implements Listener {
             plugin.getLogger().info("[DEBUG] Teleported player to first waypoint: " + startLoc);
         }
 
-        // Spawn creature at first waypoint
         Entity entity = player.getWorld().spawnEntity(startLoc, flight.getCreature());
 
         if (!(entity instanceof LivingEntity)) {
@@ -273,14 +266,12 @@ public class FlightManager implements Listener {
 
         LivingEntity creature = (LivingEntity) entity;
 
-        // Prevent PHANTOM from burning in daylight
         if (creature instanceof Phantom) {
             Phantom phantom = (Phantom) creature;
             phantom.setFireTicks(0);
             phantom.setShouldBurnInDay(false);
         }
 
-        // Apply creature configuration
         ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
         if (config != null) {
             creature.setMaxHealth(config.getHealth());
@@ -291,7 +282,6 @@ public class FlightManager implements Listener {
             creature.setSilent(config.isSilent());
             creature.setCollidable(false);
 
-            // Apply scale
             AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
             if (scaleAttr != null) {
                 scaleAttr.setBaseValue(config.getScale());
@@ -311,7 +301,6 @@ public class FlightManager implements Listener {
         FlightSession session = new FlightSession(player, flight, creature);
         activeSessions.put(player.getUniqueId(), session);
 
-        // Add mace protection
         maceProtection.add(player.getUniqueId());
 
         session.setCurrentWaypointIndex(1);
@@ -377,7 +366,6 @@ public class FlightManager implements Listener {
     private void moveCreature(FlightSession session) {
         Entity creature = session.getCreature();
 
-        // Prevent PHANTOM from burning
         if (creature instanceof Phantom) {
             creature.setFireTicks(0);
         }
@@ -411,7 +399,6 @@ public class FlightManager implements Listener {
         double newY = currentLoc.getY() + session.getYPerTick();
         double newZ = currentLoc.getZ() + session.getZPerTick();
 
-        // For last waypoint, respect exact Y coordinate
         if (isLastWaypoint) {
             double distToTarget = currentLoc.distance(targetLoc);
             if (distToTarget < 1.5) {
@@ -461,14 +448,12 @@ public class FlightManager implements Listener {
         if (creature.isValid()) {
             creature.eject();
 
-            // Deploy parachute only if NOT completed (not at last waypoint)
             if (!completed) {
                 int parachuteTime = session.getFlight().getParachuteTime();
                 if (parachuteTime >= 0) {
                     deployParachute(player, session.getFlight(), parachuteTime);
                 }
             } else {
-                // Completed - remove mace protection
                 maceProtection.remove(player.getUniqueId());
             }
 
@@ -479,7 +464,6 @@ public class FlightManager implements Listener {
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_success"));
         }
 
-        // Clear dismount confirmation
         dismountConfirmations.remove(player.getUniqueId());
 
         if (plugin.getConfigManager().isDebugEnabled()) {
@@ -549,19 +533,26 @@ public class FlightManager implements Listener {
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data == null) return;
 
-        // Check if player is on ground OR in liquid
+        // Check if player deployed elytra using isGliding()
+        if (player.isGliding()) {
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " deployed elytra - removing parachute");
+            }
+            removeParachute(player);
+            maceProtection.remove(player.getUniqueId());
+            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+            return;
+        }
+
         if (player.isOnGround() || isInLiquid(player)) {
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Player " + player.getName() + " touched ground/liquid - removing parachute");
             }
 
-            // Play landing sound based on block type
             Block groundBlock = player.getLocation().subtract(0, 1, 0).getBlock();
             playLandingSound(player, groundBlock);
 
             removeParachute(player);
-
-            // Remove mace protection
             maceProtection.remove(player.getUniqueId());
             return;
         }
@@ -601,13 +592,11 @@ public class FlightManager implements Listener {
                 plugin.getLogger().info("[DEBUG] Played landing sound: " + soundName);
             }
         } catch (IllegalArgumentException e) {
-            // Fallback to generic sound
             player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_SMALL_FALL, SoundCategory.BLOCKS, 0.3f, 1.0f);
         }
     }
 
     private String getBlockFallSound(Material material) {
-        // Map material to appropriate fall sound
         switch (material) {
             case ANCIENT_DEBRIS: return "BLOCK_ANCIENT_DEBRIS_FALL";
             case ANVIL: case CHIPPED_ANVIL: case DAMAGED_ANVIL: return "BLOCK_ANVIL_FALL";
@@ -657,7 +646,6 @@ public class FlightManager implements Listener {
         ParachuteData data = activeParachutes.remove(player.getUniqueId());
         if (data == null) return;
 
-        // Stop sound explicitly
         player.stopSound(Sound.ITEM_ELYTRA_FLYING, SoundCategory.MASTER);
 
         if (data.getSoundTask() != null) {
@@ -665,7 +653,6 @@ public class FlightManager implements Listener {
         }
 
         if (data.getChicken().isValid()) {
-            // Spawn POOF particles
             data.getChicken().getWorld().spawnParticle(Particle.POOF, data.getChicken().getLocation(), 5, 0.3, 0.3, 0.3, 0.02);
             data.getChicken().remove();
         }
@@ -702,7 +689,6 @@ public class FlightManager implements Listener {
 
         if (!event.isSneaking()) return;
 
-        // Check if player is in parachute
         if (activeParachutes.containsKey(player.getUniqueId())) {
             removeParachute(player);
             maceProtection.remove(player.getUniqueId());
@@ -710,41 +696,25 @@ public class FlightManager implements Listener {
             return;
         }
 
-        // Check if player is in flight
         if (!activeSessions.containsKey(player.getUniqueId())) return;
 
         long currentTime = System.currentTimeMillis();
         Long lastConfirm = dismountConfirmations.get(player.getUniqueId());
 
         if (lastConfirm != null && (currentTime - lastConfirm) <= 3000) {
-            // Second shift press within 3 seconds - dismount
             dismountConfirmations.remove(player.getUniqueId());
             endFlight(player, false);
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("flight_dismounted"));
         } else {
-            // First shift press - ask for confirmation
             dismountConfirmations.put(player.getUniqueId(), currentTime);
             player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("dismount_confirm"));
 
-            // Auto-expire confirmation after 3 seconds
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Long storedTime = dismountConfirmations.get(player.getUniqueId());
                 if (storedTime != null && storedTime.equals(currentTime)) {
                     dismountConfirmations.remove(player.getUniqueId());
                 }
-            }, 60L); // 3 seconds = 60 ticks
-        }
-    }
-
-    @EventHandler
-    public void onElytraToggle(PlayerToggleElytraEvent event) {
-        Player player = event.getPlayer();
-
-        // If player deploys elytra while in parachute, remove parachute
-        if (event.isFlying() && activeParachutes.containsKey(player.getUniqueId())) {
-            removeParachute(player);
-            maceProtection.remove(player.getUniqueId());
-            player.sendMessage(plugin.getMessagesManager().getPrefixedMessage("parachute_cancelled"));
+            }, 60L);
         }
     }
 
@@ -754,7 +724,6 @@ public class FlightManager implements Listener {
 
         Player player = event.getPlayer();
 
-        // Check if player is in flight
         FlightSession session = activeSessions.get(player.getUniqueId());
         if (session != null) {
             if (!session.getFlight().isAllowEnderpearlInFlight()) {
@@ -764,7 +733,6 @@ public class FlightManager implements Listener {
             }
         }
 
-        // Check if player is in parachute
         ParachuteData data = activeParachutes.get(player.getUniqueId());
         if (data != null) {
             if (!data.getFlight().isAllowEnderpearlInParachute()) {
@@ -781,16 +749,13 @@ public class FlightManager implements Listener {
 
         Player player = (Player) event.getDamager();
 
-        // Check if player has mace protection
         if (!maceProtection.contains(player.getUniqueId())) return;
 
-        // Check if player is holding a mace
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item.getType() != Material.MACE) return;
 
-        // Remove fall damage bonus
         double originalDamage = event.getDamage();
-        double baseDamage = 5.0; // Base mace damage
+        double baseDamage = 5.0;
 
         event.setDamage(baseDamage);
 
