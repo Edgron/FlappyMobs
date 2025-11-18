@@ -117,6 +117,97 @@ creatures:
     vulnerable: true
     silent: false
 
+# Message settings
+# true = send message (enabled)
+# false = don't send message (disabled)
+messages:
+prefix: "true"
+
+# GeneralMessages
+player_only: "true"
+no_permission: "true"
+error_generic: "true"
+error_economy: "true"
+
+# Flight Messages
+#flight_started: "true"
+flight_not_found: "true"
+flight_dismounted: "true"
+already_riding: "true"
+not_riding: "true"
+insufficient_funds: "true"
+payment_success: "true"
+
+# Command Dismount Messages
+command_dismount_disabled: "true"
+
+# Parachute Messages
+parachute_activated: "true"
+parachute_destroyed: "true"
+parachute_cancelled: "true"
+
+# Dismount (comment these lines to disable these messages)
+# dismount_success: "true"
+
+# Enderpearl Messages
+enderpearl_disabled_flight: "true"
+enderpearl_disabled_parachute: "true"
+
+# List Command Messages
+list_header: "true"
+list_empty: "true"
+list_entry: "true"
+list_footer: "true"
+
+# Info Command Messages
+info_header: "true"
+info_name: "true"
+info_creature: "true"
+info_cost: "true"
+info_waypoints: "true"
+info_invulnerable: "true"
+info_parachute: "true"
+info_enderpearl_flight: "true"
+info_enderpearl_parachute: "true"
+info_footer: "true"
+
+# Create/Edit Commands Messages
+create_usage: "true"
+create_started: "true"
+create_exists: "true"
+invalid_creature: "true"
+creature_disabled: "true"
+
+waypoint_added: "true"
+waypoint_removed: "true"
+waypoint_none_to_remove: "true"
+
+save_no_flight: "true"
+save_no_waypoints: "true"
+save_success: "true"
+
+cancel_success: "true"
+
+# Delete Command Messages
+delete_usage: "true"
+delete_success: "true"
+
+# Edit Command Messages
+edit_usage: "true"
+edit_invalid_property: "true"
+edit_invalid_value: "true"
+edit_success: "true"
+
+# Other Commands Messages
+removemobs_success: "true"
+reload_success: "true"
+
+# Signs Messages
+sign_header: "true"
+sign_created: "true"
+sign_invalid: "true"
+
+
 # Economy Settings
 economy:
   enabled: true

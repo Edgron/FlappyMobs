@@ -891,4 +891,57 @@ public class FlightManager implements Listener {
         }
         return count;
     }
+
+    @EventHandler
+public void onSignChange(SignChangeEvent event) {
+    Player player = event.getPlayer();
+    
+    String line0 = ChatColor.stripColor(event.getLine(0));
+    if (line0 == null || line0.isEmpty()) return;
+    
+    String signKey = plugin.getConfigManager().getSignKey();
+    String signKeyStripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', signKey))
+        .replace("[", "").replace("]", "").trim();
+    
+    String line0Stripped = line0.replace("[", "").replace("]", "").trim();
+    
+    if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
+    
+    // Strip colors BEFORE searching flight name
+    String flightName = ChatColor.stripColor(event.getLine(1)).trim();
+    
+    if (flightName.isEmpty()) {
+        String message = plugin.getMessagesManager().getPrefixedMessage("sign_invalid");
+        if (message != null) player.sendMessage(message);
+        return;
+    }
+    
+    Flight flight = getFlight(flightName);
+    
+    if (flight == null) {
+        String message = plugin.getMessagesManager().getPrefixedMessage("flight_not_found", "flight", flightName);
+        if (message != null) player.sendMessage(message);
+        return;
+    }
+    
+    // Translate color codes BEFORE setLine()
+    String line0Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine0Color());
+    String line1Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine1Color());
+    String line2Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine2Color());
+    String line3Color = ChatColor.translateAlternateColorCodes('&', plugin.getConfigManager().getSignLine3Color());
+    
+    // Apply colors immediately to the sign
+    event.setLine(0, line0Color + signKey);
+    event.setLine(1, line1Color + flightName);
+    event.setLine(2, line2Color + flight.getCreature().name());
+    event.setLine(3, line3Color + plugin.getEconomyManager().formatAmount(flight.getCost()));
+    
+    String message = plugin.getMessagesManager().getPrefixedMessage("sign_created");
+    if (message != null) player.sendMessage(message);
+    
+    if (plugin.getConfigManager().isDebugEnabled()) {
+        plugin.getLogger().info("[DEBUG] Created sign for flight: " + flightName + " by " + player.getName());
+        plugin.getLogger().info("[DEBUG] Colors applied: L0=" + line0Color + " L1=" + line1Color +
+            " L2=" + line2Color + " L3=" + line3Color);
+    }
 }
