@@ -36,7 +36,6 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 
 Ejemplo de contenido:
 
-text
 # Sección general
 general:
   language: "es"           # Archivo de idioma usado
