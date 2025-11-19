@@ -37,7 +37,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("flight")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -63,7 +63,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("dismount")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -80,20 +80,20 @@ public class FlappyCommand implements CommandExecutor {
         }
 
         if (sub.equals("list")) {
-            sender.sendMessage(messagesManager.getMessage("list_header"));
+            sender.sendMessage(messagesManager.getPrefixedMessage("list_header"));
 
             if (flightManager.getAllFlights().isEmpty()) {
-                sender.sendMessage(messagesManager.getMessage("list_empty"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("list_empty"));
             } else {
                 for (Flight flight : flightManager.getAllFlights()) {
-                    sender.sendMessage(messagesManager.getMessage("list_entry", 
+                    sender.sendMessage(messagesManager.getPrefixedMessage("list_entry", 
                         "flight", flight.getName(), 
                         "creature", flight.getCreature().name(), 
                         "cost", economyManager.formatAmount(flight.getCost())));
                 }
             }
 
-            sender.sendMessage(messagesManager.getMessage("list_footer"));
+            sender.sendMessage(messagesManager.getPrefixedMessage("list_footer"));
             return true;
         }
 
@@ -111,26 +111,26 @@ public class FlappyCommand implements CommandExecutor {
                 return true;
             }
 
-            sender.sendMessage(messagesManager.getMessage("info_header"));
-            sender.sendMessage(messagesManager.getMessage("info_name", "flight", flight.getName()));
-            sender.sendMessage(messagesManager.getMessage("info_creature", "creature", flight.getCreature().name()));
-            sender.sendMessage(messagesManager.getMessage("info_cost", "cost", economyManager.formatAmount(flight.getCost())));
-            sender.sendMessage(messagesManager.getMessage("info_waypoints", "waypoints", String.valueOf(flight.getWaypoints().size())));
-            sender.sendMessage(messagesManager.getMessage("info_invulnerable", "invulnerable", String.valueOf(flight.isInvulnerable())));
-            sender.sendMessage(messagesManager.getMessage("info_parachute", "parachute", String.valueOf(flight.getParachuteTime())));
-            sender.sendMessage(messagesManager.getMessage("info_footer"));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_header"));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_name", "flight", flight.getName()));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_creature", "creature", flight.getCreature().name()));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_cost", "cost", economyManager.formatAmount(flight.getCost())));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_waypoints", "waypoints", String.valueOf(flight.getWaypoints().size())));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_invulnerable", "invulnerable", String.valueOf(flight.isInvulnerable())));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_parachute", "parachute", String.valueOf(flight.getParachuteTime())));
+            sender.sendMessage(messagesManager.getPrefixedMessage("info_footer"));
             return true;
         }
 
         // Admin commands
         if (sub.equals("create")) {
             if (!sender.hasPermission("fp.create")) {
-                sender.sendMessage(messagesManager.getMessage("no_permission"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission"));
                 return true;
             }
 
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -178,7 +178,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("setwp")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -198,7 +198,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("remlastwp")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -222,7 +222,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("save")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -249,7 +249,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("cancel")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(messagesManager.getMessage("player_only"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));
                 return true;
             }
 
@@ -261,7 +261,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("delete")) {
             if (!sender.hasPermission("fp.delete")) {
-                sender.sendMessage(messagesManager.getMessage("no_permission"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission"));
                 return true;
             }
 
@@ -285,7 +285,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("edit")) {
             if (!sender.hasPermission("fp.edit")) {
-                sender.sendMessage(messagesManager.getMessage("no_permission"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission"));
                 return true;
             }
 
@@ -348,7 +348,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("removemobs")) {
             if (!sender.hasPermission("fp.removemobs")) {
-                sender.sendMessage(messagesManager.getMessage("no_permission"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission"));
                 return true;
             }
 
@@ -359,7 +359,7 @@ public class FlappyCommand implements CommandExecutor {
 
         if (sub.equals("reload")) {
             if (!sender.hasPermission("fp.reload")) {
-                sender.sendMessage(messagesManager.getMessage("no_permission"));
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission"));
                 return true;
             }
 
