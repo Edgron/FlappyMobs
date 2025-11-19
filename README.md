@@ -4,7 +4,7 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 
 ## ✨ Características
 - Rutas con waypoints personalizables
-- 7 criaturas voladoras configurables (`PHANTOM`, `GHAST`, `BLAZE`, `BEE`, `PARROT`, `VEX`, `ALLAY`)
+- 8 criaturas voladoras configurables (`PHANTOM`, `GHAST`, `BLAZE`, `BEE`, `PARROT`, `VEX`, `ALLAY`, `BREEZE`)
 - Las criaturas pueden cambiar de tamaño y velocidad
 - Paracaídas configurable al desmontar
 - Anti Enderpearl configurable
