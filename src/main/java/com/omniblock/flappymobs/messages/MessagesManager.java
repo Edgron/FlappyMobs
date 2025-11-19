@@ -5,11 +5,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-
 import java.io.File;
 
 public class MessagesManager {
-
     private final FlappyMobs plugin;
     private FileConfiguration messages;
     private File messagesFile;
@@ -23,33 +21,19 @@ public class MessagesManager {
 
     public void loadMessages() {
         messagesFile = new File(plugin.getDataFolder() + "/lang", currentLanguage + ".yml");
-
         if (!messagesFile.exists()) {
             plugin.saveResource("lang/" + currentLanguage + ".yml", false);
         }
-
         messages = YamlConfiguration.loadConfiguration(messagesFile);
         plugin.getLogger().info("Loaded language: " + currentLanguage);
     }
 
-    /**
-     * Check if a message is enabled in config.yml
-     * Structure: messages.{key}.enabled: true/false
-     * 
-     * @param key Message key to check
-     * @return true if message is enabled, false if disabled
-     */
     private boolean isMessageEnabled(String key) {
-        // Reload config to get fresh values
         plugin.reloadConfig();
-
-        // Check: messages.{key}.enabled
         boolean enabled = plugin.getConfig().getBoolean("messages." + key + ".enabled", true);
-
         if (plugin.getConfig().getBoolean("general.debug", false)) {
             plugin.getLogger().info("[DEBUG] Message 'messages." + key + ".enabled' = " + enabled);
         }
-
         return enabled;
     }
 
@@ -59,50 +43,38 @@ public class MessagesManager {
     }
 
     public String getPrefixedMessage(String key) {
-        // Check if message is enabled
         if (!isMessageEnabled(key)) {
             if (plugin.getConfig().getBoolean("general.debug", false)) {
                 plugin.getLogger().info("[DEBUG] Message '" + key + "' is DISABLED, not sending");
             }
             return null;
         }
-
         String message = getMessage(key);
-
-        // Check if prefix is enabled
         boolean prefixEnabled = isMessageEnabled("prefix");
         if (!prefixEnabled) {
             return message;
         }
-
         String prefix = getMessage("prefix");
         return prefix + message;
     }
 
     public String getPrefixedMessage(String key, String... replacements) {
-        // Check if message is enabled
         if (!isMessageEnabled(key)) {
             if (plugin.getConfig().getBoolean("general.debug", false)) {
                 plugin.getLogger().info("[DEBUG] Message '" + key + "' is DISABLED, not sending");
             }
             return null;
         }
-
         String message = getMessage(key);
-
-        // Apply replacements
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 < replacements.length) {
                 message = message.replace("{" + replacements[i] + "}", replacements[i + 1]);
             }
         }
-
-        // Check if prefix is enabled
         boolean prefixEnabled = isMessageEnabled("prefix");
         if (!prefixEnabled) {
             return message;
         }
-
         String prefix = getMessage("prefix");
         return prefix + message;
     }
@@ -111,6 +83,10 @@ public class MessagesManager {
         String message = getPrefixedMessage(key);
         if (message != null) {
             player.sendMessage(message);
+        } else {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Not sending message '" + key + "' - disabled in config");
+            }
         }
     }
 
@@ -118,6 +94,10 @@ public class MessagesManager {
         String message = getPrefixedMessage(key, replacements);
         if (message != null) {
             player.sendMessage(message);
+        } else {
+            if (plugin.getConfig().getBoolean("general.debug", false)) {
+                plugin.getLogger().info("[DEBUG] Not sending message '" + key + "' - disabled in config");
+            }
         }
     }
 

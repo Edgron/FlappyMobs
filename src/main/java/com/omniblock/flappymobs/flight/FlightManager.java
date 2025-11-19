@@ -47,7 +47,6 @@ public class FlightManager implements Listener {
         this.parachuteStartTime = new HashMap<>();
         this.maceProtection = new HashSet<>();
         loadFlights();
-
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -80,11 +79,9 @@ public class FlightManager implements Listener {
 
     private String stripAllColors(String text) {
         if (text == null) return null;
-
-        return text
-                .replaceAll("[&§][0-9a-fk-or]", "")
-                .replaceAll("&#[0-9A-Fa-f]{6}", "")
-                .replaceAll("#[0-9A-Fa-f]{6}", "");
+        return text.replaceAll("[&§][0-9a-fk-or]", "")
+            .replaceAll("&#[0-9A-Fa-f]{6}", "")
+            .replaceAll("#[0-9A-Fa-f]{6}", "");
     }
 
     public void loadFlights() {
@@ -98,7 +95,6 @@ public class FlightManager implements Listener {
 
         for (String flightName : config.getConfigurationSection("flights").getKeys(false)) {
             String path = "flights." + flightName;
-
             try {
                 EntityType creature = EntityType.valueOf(config.getString(path + ".creature", "PHANTOM"));
                 double cost = config.getDouble(path + ".cost", 0.0);
@@ -263,10 +259,8 @@ public class FlightManager implements Listener {
         String line0Stripped = stripAllColors(line0)
                 .replace("[", "").replace("]", "").trim();
 
-        // IMPORTANTE: Solo procesar si ES un cartel de FlappyMobs
         if (!line0Stripped.equalsIgnoreCase(signKeyStripped)) return;
 
-        // A partir de aquí, es un cartel de FlappyMobs
         String flightName = sign.getLine(1);
         if (flightName == null || flightName.isEmpty()) return;
 
@@ -283,7 +277,6 @@ public class FlightManager implements Listener {
         Flight flight = getFlight(flightNameStripped);
 
         if (flight == null) {
-            // Solo mostrar error si ES cartel de FlappyMobs pero flight no existe
             plugin.getMessagesManager().sendMessage(player, "flight_not_found", "flight", flightNameStripped);
             return;
         }
@@ -296,5 +289,264 @@ public class FlightManager implements Listener {
         }
     }
 
-// ... resto del código no modificado ...
+    public void saveFlight(Flight flight) {
+        FileConfiguration config = plugin.getConfigManager().getFlightsConfig();
+        String path = "flights." + flight.getName();
+
+        config.set(path + ".creature", flight.getCreature().name());
+        config.set(path + ".cost", flight.getCost());
+        config.set(path + ".invulnerable", flight.isInvulnerable());
+        config.set(path + ".parachute", flight.getParachuteTime());
+        config.set(path + ".allow_enderpearl_in_flight", flight.isAllowEnderpearlInFlight());
+        config.set(path + ".allow_enderpearl_in_parachute", flight.isAllowEnderpearlInParachute());
+        config.set(path + ".allow_shift_dismount", flight.isAllowShiftDismount());
+
+        List<String> waypointStrings = new ArrayList<>();
+        for (Waypoint wp : flight.getWaypoints()) {
+            waypointStrings.add(wp.saveToString());
+        }
+        config.set(path + ".waypoints", waypointStrings);
+
+        plugin.getConfigManager().saveFlightsConfig();
+        flights.put(flight.getName().toLowerCase(), flight);
+    }
+
+    public void deleteFlight(String name) {
+        FileConfiguration config = plugin.getConfigManager().getFlightsConfig();
+        config.set("flights." + name, null);
+        plugin.getConfigManager().saveFlightsConfig();
+        flights.remove(name.toLowerCase());
+    }
+
+    public Flight getFlight(String name) {
+        return flights.get(name.toLowerCase());
+    }
+
+    public Collection<Flight> getAllFlights() {
+        return flights.values();
+    }
+
+    public void startCreating(Player player, Flight flight) {
+        creatingFlights.put(player.getUniqueId(), flight);
+    }
+
+    public void stopCreating(Player player) {
+        creatingFlights.remove(player.getUniqueId());
+    }
+
+    public Flight getCreatingFlight(Player player) {
+        return creatingFlights.get(player.getUniqueId());
+    }
+
+    public boolean isCreating(Player player) {
+        return creatingFlights.containsKey(player.getUniqueId());
+    }
+
+    public void startFlight(Player player, Flight flight) {
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' for player " + player.getName());
+        }
+
+        if (activeSessions.containsKey(player.getUniqueId())) {
+            plugin.getMessagesManager().sendMessage(player, "already_riding");
+            return;
+        }
+
+        if (flight.getWaypoints().isEmpty()) {
+            plugin.getMessagesManager().sendMessage(player, "error_generic");
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
+            }
+            return;
+        }
+
+        if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
+            if (!plugin.getEconomyManager().isEnabled()) {
+                plugin.getMessagesManager().sendMessage(player, "error_economy");
+                plugin.getLogger().warning("Economy is not enabled but flight has cost!");
+                return;
+            }
+
+            if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
+                plugin.getMessagesManager().sendMessage(player, "insufficient_funds", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
+                        plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
+                }
+                return;
+            }
+
+            if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
+                plugin.getMessagesManager().sendMessage(player, "error_economy");
+                return;
+            }
+
+            plugin.getMessagesManager().sendMessage(player, "payment_success", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
+            }
+        }
+
+        playSound(player, player.getLocation(), "start");
+        player.getWorld().spawnParticle(Particle.GUST, player.getLocation(), 1);
+
+        Waypoint firstWP = flight.getWaypoints().get(0);
+        Location startLoc = firstWP.getAsLocation();
+        player.teleport(startLoc);
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Teleported player to first waypoint: " + startLoc);
+        }
+
+        Entity entity = player.getWorld().spawnEntity(startLoc, flight.getCreature());
+
+        if (!(entity instanceof LivingEntity)) {
+            entity.remove();
+            plugin.getMessagesManager().sendMessage(player, "error_generic");
+            return;
+        }
+
+        LivingEntity creature = (LivingEntity) entity;
+
+        if (creature instanceof Phantom) {
+            Phantom phantom = (Phantom) creature;
+            phantom.setFireTicks(0);
+            phantom.setShouldBurnInDay(false);
+        }
+
+        ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
+        if (config != null) {
+            creature.setMaxHealth(config.getHealth());
+            creature.setHealth(config.getHealth());
+            creature.setAI(false);
+            creature.setGravity(false);
+            creature.setInvulnerable(flight.isInvulnerable());
+            creature.setSilent(config.isSilent());
+            creature.setCollidable(false);
+
+            AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
+            if (scaleAttr != null) {
+                scaleAttr.setBaseValue(config.getScale());
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
+                }
+            }
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Creature config - Health: " + config.getHealth() + 
+                    ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale() + ", Silent: " + config.isSilent());
+            }
+        }
+
+        creature.addPassenger(player);
+
+        FlightSession session = new FlightSession(player, flight, creature);
+        activeSessions.put(player.getUniqueId(), session);
+
+        maceProtection.add(player.getUniqueId());
+
+        session.setCurrentWaypointIndex(1);
+        calculateMovement(session);
+
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            moveCreature(session);
+        }, 1L, 1L);
+
+        session.setMovementTask(task);
+
+        plugin.getMessagesManager().sendMessage(player, "flight_started");
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
+        }
+    }
+
+    public void endFlight(Player player, boolean completed) {
+        FlightSession session = activeSessions.remove(player.getUniqueId());
+
+        if (session == null) {
+            return;
+        }
+
+        session.cancel();
+        Entity creature = session.getCreature();
+
+        if (creature.isValid()) {
+            creature.eject();
+
+            if (!completed) {
+                int parachuteTime = session.getFlight().getParachuteTime();
+                if (parachuteTime >= 0) {
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        deployParachute(player, session.getFlight(), parachuteTime);
+                    }, 5L);
+                }
+            } else {
+                maceProtection.remove(player.getUniqueId());
+            }
+
+            creature.remove();
+        }
+
+        if (completed) {
+            plugin.getMessagesManager().sendMessage(player, "dismount_success");
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Flight ended for " + player.getName() + " (completed=" + completed + ")");
+        }
+    }
+
+    public boolean isInFlight(Player player) {
+        return activeSessions.containsKey(player.getUniqueId());
+    }
+
+    public void reload() {
+        loadFlights();
+    }
+
+    public void cleanup() {
+        for (FlightSession session : new ArrayList<>(activeSessions.values())) {
+            endFlight(session.getPlayer(), false);
+        }
+        activeSessions.clear();
+        creatingFlights.clear();
+
+        for (UUID uuid : new ArrayList<>(activeParachutes.keySet())) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                removeParachute(player);
+            }
+        }
+        activeParachutes.clear();
+        parachuteStartTime.clear();
+        maceProtection.clear();
+    }
+
+    public Flight getFlight(String name) {
+        return flights.get(name.toLowerCase());
+    }
+
+    public Collection<Flight> getAllFlights() {
+        return flights.values();
+    }
+
+    public void startCreating(Player player, Flight flight) {
+        creatingFlights.put(player.getUniqueId(), flight);
+    }
+
+    public void stopCreating(Player player) {
+        creatingFlights.remove(player.getUniqueId());
+    }
+
+    public Flight getCreatingFlight(Player player) {
+        return creatingFlights.get(player.getUniqueId());
+    }
+
+    public boolean isCreating(Player player) {
+        return creatingFlights.containsKey(player.getUniqueId());
+    }
+
+    // Métodos auxiliares omitidos por brevedad (startFlight, calculateMovement, moveCreature, deployParachute, etc.)
 }
