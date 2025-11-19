@@ -37,29 +37,34 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 Ejemplo de contenido:
 
 ### Sección general
+```yaml
 general:
   language: "es"           # Archivo de idioma usado
   parachute_time: 5        # Segundos por defecto de paracaídas
   debug: false             # Activa logs extra
-
+```
 ### Paracaídas
+```yaml
 parachute:
   chicken_health: 10.0     # Salud del pollo-paracaídas
   chicken_scale: 1.5       # Tamaño visual
-
+```
 ### Carteles
+```yaml
 signs:
   key: "[FlappyMobs]"      # Clave que debe estar en el cartel
   line0_color: "&6"        # Color de la línea 1
   line1_color: "&e"        # Color de la línea 2
-
+```
 ### Sonidos
+```yaml
 sounds:
   start:                   # Sonido al iniciar vuelo
     enabled: true
     sound: "ENTITY_BREEZE_WIND_BURST"
-
+```
 ### Criaturas voladoras
+```yaml
 creatures:
   PHANTOM:
     enabled: true
@@ -67,6 +72,7 @@ creatures:
     speed: 2.0
     scale: 0.8
     silent: true
+```
     
 ## 🪧 Carteles
 Pon `[FlappyMobs]` en la línea 1 y el nombre del vuelo en la línea 2 del cartel para un vuelo.
