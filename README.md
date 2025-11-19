@@ -24,13 +24,52 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 - ✅ Mejor rendimiento y estabilidad
 - ✅ API mejorada para attributes
 
-## ⚙️ Configuración
-Edita `config.yml` y `flights.yml`. Activa debug para ver logs detallados:
+## ⚙️ Secciones de Configuración
+Sección	Descripción
+general	Ajustes globales del plugin: archivo de idioma, duración por defecto del paracaídas, modo debug/logs.
+parachute	Configuración visual y de vida del paracaídas (pollo): salud máxima y escala (tamaño visual).
+signs	Personalización de carteles para vuelos: clave, y colores para cada línea usando códigos y hex.
+sounds	Sonidos personalizados para eventos: inicio de vuelo, despliegue de paracaídas y descenso.
+creatures	Propiedades individuales de cada criatura voladora (activar, salud, velocidad, escala, silencio).
+messages	Control granular sobre mensajes enviados: puedes activar o desactivar por clave cada mensaje.
+Ejemplo de contenido:
 
-```yaml
+text
+# Sección general
 general:
-  debug: true
-```
+  language: "es"           # Archivo de idioma usado
+  parachute_time: 5        # Segundos por defecto de paracaídas
+  debug: false             # Activa logs extra
+
+# Paracaídas
+parachute:
+  chicken_health: 10.0     # Salud del pollo-paracaídas
+  chicken_scale: 1.5       # Tamaño visual
+
+# Carteles
+signs:
+  key: "[FlappyMobs]"      # Identificador en el cartel
+  line0_color: "&6"        # Color primer línea
+  line1_color: "&e"        # Color vuelo
+  ...
+
+# Sonidos
+sounds:
+  start:                   # Sonido al iniciar vuelo
+    enabled: true
+    sound: "ENTITY_BREEZE_WIND_BURST"
+    ...
+
+# Criaturas
+creatures:
+  PHANTOM:
+    enabled: true
+    health: 20.0
+    speed: 2.0
+    scale: 0.8
+    silent: true
+  ...
+  
 ## 🪧 Carteles
 Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
 
@@ -69,6 +108,7 @@ Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
 | `flappymobs.delete`  | Permite eliminar vuelos                   | `delete`                           |
 | `flappymobs.removemobs` | Permite limpiar criaturas sin jinete    | `removemobs`                       |
 | `flappymobs.reload`  | Permite recargar configuración            | `reload`                           |
+
 
 ## 📝 Notas
 - Requiere **Paper 1.21.10+** para escala completa y estabilidad.
