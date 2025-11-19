@@ -36,7 +36,7 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 
 Ejemplo de contenido:
 
-# Sección general
+### Sección general
 general:
   language: "es"           # Archivo de idioma usado
   parachute_time: 5        # Segundos por defecto de paracaídas
