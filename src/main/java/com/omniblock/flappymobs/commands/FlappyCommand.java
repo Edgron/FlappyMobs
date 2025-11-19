@@ -60,7 +60,39 @@ public class FlappyCommand implements CommandExecutor {
             flightManager.startFlight(player, flight);
             return true;
         }
-
+		
+        if (sub.equals("send")) {
+            // Subcomando para enviar a otro jugador a vuelo específico (permiso flappymobs.send)
+            if (!sender.hasPermission("flappymobs.send")) {
+                sender.sendMessage(messagesManager.getPrefixedMessage("no_permission_send"));
+                return true;
+            }
+            if (args.length < 3) {
+                sender.sendMessage(messagesManager.getPrefixedMessage("usage_fp_send"));
+                return true;
+            }
+            String flightName = args[1];
+            String targetName = args[2];
+        
+            Flight flight = flightManager.getFlight(flightName);
+            if (flight == null) {
+                sender.sendMessage(messagesManager.getPrefixedMessage("flight_not_found", "flight", flightName));
+                return true;
+            }
+        
+            Player target = plugin.getServer().getPlayerExact(targetName);
+            if (target == null || !target.isOnline()) {
+                sender.sendMessage(messagesManager.getPrefixedMessage("player_not_found", "player", targetName));
+                return true;
+            }
+        
+            flightManager.startFlight(target, flight);
+            sender.sendMessage(messagesManager.getPrefixedMessage("send_success", "player", targetName, "flight", flightName));
+            target.sendMessage(messagesManager.getPrefixedMessage("send_received", "flight", flightName));
+        
+            return true;
+        }
+		
         if (sub.equals("dismount")) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage(messagesManager.getPrefixedMessage("player_only"));

@@ -23,6 +23,7 @@ permissions:
       fp.edit: true
       fp.reload: true
       fp.removemobs: true
+      fp.send: true
   fp.create:
     description: Create new flights
     default: op
@@ -38,6 +39,9 @@ permissions:
   fp.removemobs:
     description: Remove all riderless creatures
     default: op
+  fp.send:
+    description: Start a flight to a player
+    default: op    
   fp.flight:
     description: Start a flight
     default: true

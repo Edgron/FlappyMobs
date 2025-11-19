@@ -17,6 +17,17 @@ not_riding: "&cNo estás montando en ninguna criatura."
 insufficient_funds: "&cNo tienes suficiente dinero. Necesitas: &e{cost}"
 payment_success: "&aPagado: &e{cost}"
 
+# Send Messages
+usage_fp: "&eUso: /fp flight <nombre> | /fp send <nombre> <jugador>"
+usage_fp_flight: "&eUso correcto: /fp flight <nombre>"
+usage_fp_send: "&eUso correcto: /fp send <nombre> <jugador>"
+only_players: "&cSolo jugadores pueden usar este comando."
+no_permission_send: "&cNo tienes permiso para enviar jugadores a vuelos."
+flight_not_found: "&cEl vuelo '{flight}' no existe."
+player_not_found: "&cEl jugador '{player}' no está en línea."
+send_success: "&aVuelo '{flight}' iniciado para el jugador '{player}'."
+send_received: "&aUn administrador te ha enviado al vuelo '{flight}'."
+
 # Parachute
 parachute_activated: "&aParacaídas desplegado. Descenso seguro activado."
 parachute_destroyed: "&c¡Tu paracaídas ha sido destruido!"

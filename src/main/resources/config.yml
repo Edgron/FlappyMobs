@@ -150,7 +150,27 @@ messages:
     enabled: true
   payment_success:
     enabled: true
-
+    
+  # Send
+  usage_fp:
+    enabled: true
+  usage_fp_flight:
+    enabled: true
+  usage_fp_send:
+    enabled: true
+  only_players:
+    enabled: true
+  no_permission_send:
+    enabled: true
+  flight_not_found:
+    enabled: true
+  player_not_found:
+    enabled: true
+  send_success:
+    enabled: true
+  send_received:
+    enabled: true
+  
   # Parachute
   parachute_activated:
     enabled: true
