@@ -1,0 +1,61 @@
+name: FlappyMobs
+version: '${project.version}'
+main: com.omniblock.flappymobs.FlappyMobs
+api-version: '1.21'
+authors: [Omniblock]
+description: Advanced flying creature transport system for Minecraft 1.21+
+website: https://omniblock.net
+softdepend: [Vault]
+
+commands:
+  fp:
+    description: FlappyMobs main command
+    usage: /<command> [args]
+    aliases: [flappymobs, flappy]
+
+permissions:
+  fp.admin:
+    description: Access to all FlappyMobs admin commands
+    default: op
+    children:
+      fp.create: true
+      fp.delete: true
+      fp.edit: true
+      fp.reload: true
+      fp.removemobs: true
+  fp.create:
+    description: Create new flights
+    default: op
+  fp.delete:
+    description: Delete flights
+    default: op
+  fp.edit:
+    description: Edit flight properties
+    default: op
+  fp.reload:
+    description: Reload plugin configuration
+    default: op
+  fp.removemobs:
+    description: Remove all riderless creatures
+    default: op
+  fp.flight:
+    description: Start a flight
+    default: true
+  fp.dismount:
+    description: Dismount from creature
+    default: true
+  fp.list:
+    description: List all available flights
+    default: true
+  fp.info:
+    description: View flight information
+    default: true
+  fp.nocost:
+    description: Bypass flight costs
+    default: op
+  fp.sign.create:
+    description: Create FlappyMobs signs
+    default: op
+  fp.sign.use:
+    description: Use FlappyMobs signs
+    default: true
