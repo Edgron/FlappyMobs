@@ -55,6 +55,19 @@ general:
 | `/fp edit <nombre> <propiedad> <valor>` | Edita propiedades |
 | `/fp removemobs` | Limpia criaturas sin jinete |
 | `/fp reload` | Recarga configuración |
+/fp send <nombre> <jugador>	Envía a un jugador a vuelo especificado
+
+🔐 Permisos
+Permiso	Descripción	Comandos relacionados
+flappymobs.use	Permite usar el comando /fp básico	/fp flight, /fp list, /fp info, /fp dismount
+flappymobs.flight	Permite iniciar vuelos con /fp flight	/fp flight
+flappymobs.send	Permite enviar a otros jugadores a vuelos	/fp send
+flappymobs.stop	Permite desmontar vuelo con /fp dismount	/fp dismount
+flappymobs.create	Permite crear nuevos vuelos	/fp create, /fp setwp, /fp save
+flappymobs.edit	Permite editar vuelos	/fp edit
+flappymobs.delete	Permite eliminar vuelos	/fp delete
+flappymobs.removemobs	Permite limpiar criaturas sin jinete	/fp removemobs
+flappymobs.reload	Permite recargar configuración y mensajes	/fp reload
 
 ### Carteles
 Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
