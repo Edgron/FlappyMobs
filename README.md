@@ -42,24 +42,24 @@ general:
   parachute_time: 5        # Segundos por defecto de paracaídas
   debug: false             # Activa logs extra
 
-# Paracaídas
+### Paracaídas
 parachute:
   chicken_health: 10.0     # Salud del pollo-paracaídas
   chicken_scale: 1.5       # Tamaño visual
 
-# Carteles
+### Carteles
 signs:
   key: "[FlappyMobs]"      # Clave que debe estar en el cartel
   line0_color: "&6"        # Color de la línea 1
   line1_color: "&e"        # Color de la línea 2
 
-# Sonidos
+### Sonidos
 sounds:
   start:                   # Sonido al iniciar vuelo
     enabled: true
     sound: "ENTITY_BREEZE_WIND_BURST"
 
-# Criaturas voladoras
+### Criaturas voladoras
 creatures:
   PHANTOM:
     enabled: true
