@@ -34,37 +34,41 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 | `creatures` | Propiedades de cada criatura voladora (activar, salud, velocidad, escala, silencio).                  |
 | `messages`  | Control granular sobre mensajes enviados (puedes activar/desactivar por clave cada mensaje).           |
 
-**Ejemplo de contenido:**
-
-general:
-language: "es"
-parachute_time: 5
-debug: false
-
-parachute:
-chicken_health: 10.0
-chicken_scale: 1.5
-
-signs:
-key: "[FlappyMobs]"
-line0_color: "&6"
-line1_color: "&e"
-
-sounds:
-start:
-enabled: true
-sound: "ENTITY_BREEZE_WIND_BURST"
-
-creatures:
-PHANTOM:
-enabled: true
-health: 20.0
-speed: 2.0
-scale: 0.8
-silent: true
+Ejemplo de contenido:
 
 text
+# Sección general
+general:
+  language: "es"           # Archivo de idioma usado
+  parachute_time: 5        # Segundos por defecto de paracaídas
+  debug: false             # Activa logs extra
 
+# Paracaídas
+parachute:
+  chicken_health: 10.0     # Salud del pollo-paracaídas
+  chicken_scale: 1.5       # Tamaño visual
+
+# Carteles
+signs:
+  key: "[FlappyMobs]"      # Clave que debe estar en el cartel
+  line0_color: "&6"        # Color de la línea 1
+  line1_color: "&e"        # Color de la línea 2
+
+# Sonidos
+sounds:
+  start:                   # Sonido al iniciar vuelo
+    enabled: true
+    sound: "ENTITY_BREEZE_WIND_BURST"
+
+# Criaturas voladoras
+creatures:
+  PHANTOM:
+    enabled: true
+    health: 20.0
+    speed: 2.0
+    scale: 0.8
+    silent: true
+    
 ## 🪧 Carteles
 Pon `[FlappyMobs]` en la línea 1 y el nombre del vuelo en la línea 2 del cartel para un vuelo.
 
