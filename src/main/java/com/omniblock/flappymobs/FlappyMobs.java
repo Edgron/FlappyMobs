@@ -32,7 +32,7 @@ public final class FlappyMobs extends JavaPlugin {
 
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
-        getServer().getPluginManager().registerEvents(new SignListener(this), this);
+        getServer().getPluginManager().registerEvents(new SignManager(this), this);
 
         getLogger().info("FlappyMobs has been enabled!");
     }
