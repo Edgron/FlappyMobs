@@ -2,11 +2,11 @@ package com.omniblock.flappymobs;
 
 import com.omniblock.flappymobs.commands.FlappyCommand;
 import com.omniblock.flappymobs.config.ConfigManager;
-import com.omniblock.flappymobs.config.MessagesManager;
+import com.omniblock.flappymobs.messages.MessagesManager;
 import com.omniblock.flappymobs.economy.EconomyManager;
 import com.omniblock.flappymobs.flight.FlightManager;
 import com.omniblock.flappymobs.listeners.PlayerListener;
-import com.omniblock.flappymobs.listeners.SignListener;
+import com.omniblock.flappymobs.listeners.SignManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class FlappyMobs extends JavaPlugin {

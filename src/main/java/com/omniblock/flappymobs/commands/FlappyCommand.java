@@ -1,7 +1,7 @@
 package com.omniblock.flappymobs.commands;
 
 import com.omniblock.flappymobs.FlappyMobs;
-import com.omniblock.flappymobs.config.MessagesManager;
+import com.omniblock.flappymobs.messages.MessagesManager;
 import com.omniblock.flappymobs.economy.EconomyManager;
 import com.omniblock.flappymobs.flight.Flight;
 import com.omniblock.flappymobs.flight.FlightManager;
