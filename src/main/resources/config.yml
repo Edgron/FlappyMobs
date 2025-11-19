@@ -1,0 +1,248 @@
+# FlappyMobs Configuration
+
+# General Settings
+general:
+  # Language file (in lang folder)
+  language: "es"
+  # Default parachute duration in seconds (0 = permanent until ground)
+  parachute_time: 5
+  # Enable debug messages
+  debug: false
+
+# Parachute Settings
+parachute:
+  # Chicken health (can be damaged/destroyed)
+  chicken_health: 10.0
+  # Chicken scale (visual size)
+  chicken_scale: 1.5
+
+# Sign Settings
+signs:
+  # Sign key (text on first line)
+  key: "[FlappyMobs]"
+  # Line colors - supports legacy codes (&a, &c) and hex colors (&#FF5733)
+  line0_color: "&6"      # Sign key color
+  line1_color: "&e"      # Flight name color
+  line2_color: "&f"      # Creature type color
+  line3_color: "&a"      # Price color
+
+# Sound Settings
+sounds:
+  # Sound when flight starts
+  start:
+    enabled: true
+    sound: "ENTITY_BREEZE_WIND_BURST"
+    volume: 0.5
+    pitch: 1.0
+    category: "MASTER"
+
+  # Sound when parachute deploys
+  parachute_deploy:
+    enabled: true
+    sound: "ENTITY_ENDER_DRAGON_FLAP"
+    volume: 0.5
+    pitch: 0.8
+    category: "MASTER"
+
+  # Sound during parachute descent (loops every second)
+  parachute_descent:
+    enabled: true
+    sound: "ITEM_ELYTRA_FLYING"
+    volume: 0.2
+    pitch: 0.8
+    category: "MASTER"
+
+# Creature Settings
+creatures:
+  PHANTOM:
+    enabled: true
+    health: 20.0
+    speed: 2.0
+    scale: 0.8
+    silent: true
+
+  GHAST:
+    enabled: true
+    health: 30.0
+    speed: 1.5
+    scale: 0.6
+    silent: true
+
+  BLAZE:
+    enabled: true
+    health: 25.0
+    speed: 2.5
+    scale: 1.0
+    silent: true
+
+  BEE:
+    enabled: true
+    health: 15.0
+    speed: 3.0
+    scale: 2.0
+    silent: true
+
+  PARROT:
+    enabled: true
+    health: 10.0
+    speed: 2.5
+    scale: 2.5
+    silent: true
+
+  VEX:
+    enabled: true
+    health: 20.0
+    speed: 3.0
+    scale: 1.5
+    silent: true
+
+  ALLAY:
+    enabled: true
+    health: 15.0
+    speed: 2.0
+    scale: 1.8
+    silent: true
+
+  BREEZE:
+    enabled: true
+    health: 25.0
+    speed: 2.8
+    scale: 1.0
+    silent: true
+
+# MESSAGES CONTROL
+# Enable or disable specific messages
+# Structure: message_key: { enabled: true/false }
+messages:
+
+  # General
+  prefix:
+    enabled: true
+  no_permission:
+    enabled: true
+  player_only:
+    enabled: true
+  reload_success:
+    enabled: true
+  invalid_creature:
+    enabled: true
+  creature_disabled:
+    enabled: true
+  error_generic:
+    enabled: true
+  error_economy:
+    enabled: true
+
+  # Flight
+  flight_started:
+    enabled: true
+  flight_not_found:
+    enabled: true
+  already_riding:
+    enabled: true
+  not_riding:
+    enabled: true
+  flight_dismounted:
+    enabled: true
+  dismount_success:
+    enabled: true
+  insufficient_funds:
+    enabled: true
+  payment_success:
+    enabled: true
+
+  # Parachute
+  parachute_activated:
+    enabled: true
+  parachute_destroyed:
+    enabled: true
+  parachute_cancelled:
+    enabled: true
+
+  # Enderpearl
+  enderpearl_disabled_flight:
+    enabled: true
+  enderpearl_disabled_parachute:
+    enabled: true
+
+  # List Command
+  list_header:
+    enabled: true
+  list_empty:
+    enabled: true
+  list_entry:
+    enabled: true
+  list_footer:
+    enabled: true
+
+  # Info Command
+  info_header:
+    enabled: true
+  info_name:
+    enabled: true
+  info_creature:
+    enabled: true
+  info_cost:
+    enabled: true
+  info_waypoints:
+    enabled: true
+  info_invulnerable:
+    enabled: true
+  info_parachute:
+    enabled: true
+  info_enderpearl_flight:
+    enabled: true
+  info_enderpearl_parachute:
+    enabled: true
+  info_footer:
+    enabled: true
+
+  # Create/Edit Commands
+  create_usage:
+    enabled: true
+  create_started:
+    enabled: true
+  create_exists:
+    enabled: true
+  waypoint_added:
+    enabled: true
+  waypoint_removed:
+    enabled: true
+  waypoint_none_to_remove:
+    enabled: true
+  save_no_flight:
+    enabled: true
+  save_no_waypoints:
+    enabled: true
+  save_success:
+    enabled: true
+  cancel_success:
+    enabled: true
+
+  # Delete Command
+  delete_usage:
+    enabled: true
+  delete_success:
+    enabled: true
+
+  # Edit Command
+  edit_usage:
+    enabled: true
+  edit_invalid_property:
+    enabled: true
+  edit_invalid_value:
+    enabled: true
+  edit_success:
+    enabled: true
+
+  # Other Commands
+  removemobs_success:
+    enabled: true
+
+  # Signs
+  sign_header:
+    enabled: true
+  sign_created:
+    enabled: true
+  sign_invalid:
+    enabled: true
