@@ -31,7 +31,8 @@ Edita `config.yml` y `flights.yml`. Activa debug para ver logs detallados:
 general:
   debug: true
 ```
-
+## 🪧 Carteles
+Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
 
 ## 🎮 Comandos
 
@@ -54,9 +55,6 @@ general:
 | `/fp removemobs`               | Limpia criaturas sin jinete       |
 | `/fp reload`                  | Recarga configuración             |
 | `/fp send <nombre> <jugador>` | Envía a un jugador a vuelo específico |
-
-### Carteles
-Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
 
 ## 🔐 Permisos
 
