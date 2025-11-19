@@ -1,1 +1,0 @@
-/* Contenido de Waypoint.java versión actual */

@@ -1,1 +1,0 @@
-/* Contenido de EconomyManager.java versión actual */
