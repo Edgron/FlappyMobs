@@ -1,0 +1,1 @@
+/* Contenido de SignManager.java versión actual */

@@ -1,0 +1,1 @@
+/* Contenido de ConfigManager.java versión actual */
