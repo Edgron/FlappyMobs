@@ -2,6 +2,7 @@ package com.omniblock.flappymobs.flight;
 
 import com.omniblock.flappymobs.FlappyMobs;
 import com.omniblock.flappymobs.config.ConfigManager;
+import com.omniblock.flappymobs.messages.MessagesManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -31,6 +32,7 @@ import java.util.*;
 public class FlightManager implements Listener {
 
     private final FlappyMobs plugin;
+    private final MessagesManager messagesManager;
     private final Map<String, Flight> flights;
     private final Map<UUID, FlightSession> activeSessions;
     private final Map<UUID, Flight> creatingFlights;
@@ -40,6 +42,7 @@ public class FlightManager implements Listener {
 
     public FlightManager(FlappyMobs plugin) {
         this.plugin = plugin;
+        this.messagesManager = plugin.getMessagesManager();
         this.flights = new HashMap<>();
         this.activeSessions = new HashMap<>();
         this.creatingFlights = new HashMap<>();
@@ -206,7 +209,7 @@ public class FlightManager implements Listener {
 
         String flightName = event.getLine(1);
         if (flightName == null || flightName.isEmpty()) {
-            plugin.getMessagesManager().sendMessage(player, "sign_invalid");
+            messagesManager.sendMessage(player, "sign_invalid");
             return;
         }
 
@@ -215,7 +218,7 @@ public class FlightManager implements Listener {
         Flight flight = getFlight(flightNameStripped);
 
         if (flight == null) {
-            plugin.getMessagesManager().sendMessage(player, "flight_not_found", "flight", flightNameStripped);
+            messagesManager.sendMessage(player, "flight_not_found", "flight", flightNameStripped);
             return;
         }
 
@@ -223,9 +226,9 @@ public class FlightManager implements Listener {
         event.setLine(1, plugin.getConfigManager().getSignLine1Color() + flightNameStripped);
         event.setLine(2, plugin.getConfigManager().getSignLine2Color() + flight.getCreature().name());
         event.setLine(3, plugin.getConfigManager().getSignLine3Color() + plugin.getEconomyManager().formatAmount(flight.getCost()));
-        event.update();
+        event.getBlock().getState().update();
 
-        plugin.getMessagesManager().sendMessage(player, "sign_created");
+        messagesManager.sendMessage(player, "sign_created");
 
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Sign created for flight: " + flightNameStripped);
@@ -277,7 +280,7 @@ public class FlightManager implements Listener {
         Flight flight = getFlight(flightNameStripped);
 
         if (flight == null) {
-            plugin.getMessagesManager().sendMessage(player, "flight_not_found", "flight", flightNameStripped);
+            messagesManager.sendMessage(player, "flight_not_found", "flight", flightNameStripped);
             return;
         }
 
@@ -348,12 +351,12 @@ public class FlightManager implements Listener {
         }
 
         if (activeSessions.containsKey(player.getUniqueId())) {
-            plugin.getMessagesManager().sendMessage(player, "already_riding");
+            messagesManager.sendMessage(player, "already_riding");
             return;
         }
 
         if (flight.getWaypoints().isEmpty()) {
-            plugin.getMessagesManager().sendMessage(player, "error_generic");
+            messagesManager.sendMessage(player, "error_generic");
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
             }
@@ -362,13 +365,13 @@ public class FlightManager implements Listener {
 
         if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
             if (!plugin.getEconomyManager().isEnabled()) {
-                plugin.getMessagesManager().sendMessage(player, "error_economy");
+                messagesManager.sendMessage(player, "error_economy");
                 plugin.getLogger().warning("Economy is not enabled but flight has cost!");
                 return;
             }
 
             if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
-                plugin.getMessagesManager().sendMessage(player, "insufficient_funds", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+                messagesManager.sendMessage(player, "insufficient_funds", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
                 if (plugin.getConfigManager().isDebugEnabled()) {
                     plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
                         plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
@@ -377,11 +380,11 @@ public class FlightManager implements Listener {
             }
 
             if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
-                plugin.getMessagesManager().sendMessage(player, "error_economy");
+                messagesManager.sendMessage(player, "error_economy");
                 return;
             }
 
-            plugin.getMessagesManager().sendMessage(player, "payment_success", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
+            messagesManager.sendMessage(player, "payment_success", "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
 
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
@@ -403,7 +406,7 @@ public class FlightManager implements Listener {
 
         if (!(entity instanceof LivingEntity)) {
             entity.remove();
-            plugin.getMessagesManager().sendMessage(player, "error_generic");
+            messagesManager.sendMessage(player, "error_generic");
             return;
         }
 
@@ -455,7 +458,7 @@ public class FlightManager implements Listener {
 
         session.setMovementTask(task);
 
-        plugin.getMessagesManager().sendMessage(player, "flight_started");
+        messagesManager.sendMessage(player, "flight_started");
 
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
@@ -490,7 +493,7 @@ public class FlightManager implements Listener {
         }
 
         if (completed) {
-            plugin.getMessagesManager().sendMessage(player, "dismount_success");
+            messagesManager.sendMessage(player, "dismount_success");
         }
 
         if (plugin.getConfigManager().isDebugEnabled()) {
@@ -548,5 +551,6 @@ public class FlightManager implements Listener {
         return creatingFlights.containsKey(player.getUniqueId());
     }
 
-    // Métodos auxiliares omitidos por brevedad (startFlight, calculateMovement, moveCreature, deployParachute, etc.)
+    // Aquí los métodos auxiliares como playSound, calculateMovement, moveCreature, deployParachute, removeParachute
+    // son requeridos para que el plugin funcione correctamente, si deseas puedo agregarlos también.
 }
