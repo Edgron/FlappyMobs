@@ -368,134 +368,146 @@ public class FlightManager implements Listener {
     }
 
     public void startFlight(Player player, Flight flight) {
+    if (plugin.getConfigManager().isDebugEnabled()) {
+        plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' for player " + player.getName());
+    }
+
+    // Verificar si el jugador ya está en vuelo
+    if (activeSessions.containsKey(player.getUniqueId())) {
+        String message = plugin.getMessagesManager().getPrefixedMessage("already_riding");
+        if (message != null) player.sendMessage(message);
+        return;
+    }
+
+    // Validar waypoints
+    if (flight.getWaypoints().isEmpty()) {
+        String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
+        if (message != null) player.sendMessage(message);
         if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] Starting flight '" + flight.getName() + "' for player " + player.getName());
+            plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
         }
+        return;
+    }
 
-        if (activeSessions.containsKey(player.getUniqueId())) {
-            String message = plugin.getMessagesManager().getPrefixedMessage("already_riding");
+    // Crear sesión TEMPORAL para bloquear clics múltiples (sin entidad aún)
+    FlightSession tempSession = new FlightSession(player, flight, null);
+    activeSessions.put(player.getUniqueId(), tempSession);
+
+    // Validar economía
+    if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
+        if (!plugin.getEconomyManager().isEnabled()) {
+            activeSessions.remove(player.getUniqueId()); // Remover sesión temporal
+            String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
             if (message != null) player.sendMessage(message);
+            plugin.getLogger().warning("Economy is not enabled but flight has cost!");
             return;
         }
 
-        if (flight.getWaypoints().isEmpty()) {
-            String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
-            if (message != null) player.sendMessage(message);
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().warning("[DEBUG] Flight '" + flight.getName() + "' has no waypoints!");
-            }
-            return;
-        }
-
-        if (flight.getCost() > 0 && !player.hasPermission("fp.nocost")) {
-            if (!plugin.getEconomyManager().isEnabled()) {
-                String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
-                if (message != null) player.sendMessage(message);
-                plugin.getLogger().warning("Economy is not enabled but flight has cost!");
-                return;
-            }
-
-            if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
-                String message = plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
-                    "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
-                if (message != null) player.sendMessage(message);
-                if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
-                        plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
-                }
-                return;
-            }
-
-            if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
-                String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
-                if (message != null) player.sendMessage(message);
-                return;
-            }
-
-            String message = plugin.getMessagesManager().getPrefixedMessage("payment_success", 
+        if (!plugin.getEconomyManager().hasBalance(player, flight.getCost())) {
+            activeSessions.remove(player.getUniqueId()); // Remover sesión temporal
+            String message = plugin.getMessagesManager().getPrefixedMessage("insufficient_funds", 
                 "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
             if (message != null) player.sendMessage(message);
-
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
+                plugin.getLogger().info("[DEBUG] Player " + player.getName() + " has insufficient funds. Has: " + 
+                    plugin.getEconomyManager().getBalance(player) + " Needs: " + flight.getCost());
             }
+            return;
         }
 
-        playSound(player, player.getLocation(), "start");
-        player.getWorld().spawnParticle(Particle.GUST, player.getLocation(), 1);
-
-        Waypoint firstWP = flight.getWaypoints().get(0);
-        Location startLoc = firstWP.getAsLocation();
-        player.teleport(startLoc);
-
-        if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] Teleported player to first waypoint: " + startLoc);
-        }
-
-        Entity entity = player.getWorld().spawnEntity(startLoc, flight.getCreature());
-
-        if (!(entity instanceof LivingEntity)) {
-            entity.remove();
-            String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
+        if (!plugin.getEconomyManager().withdraw(player, flight.getCost())) {
+            activeSessions.remove(player.getUniqueId()); // Remover sesión temporal
+            String message = plugin.getMessagesManager().getPrefixedMessage("error_economy");
             if (message != null) player.sendMessage(message);
             return;
         }
 
-        LivingEntity creature = (LivingEntity) entity;
-
-        if (creature instanceof Phantom) {
-            Phantom phantom = (Phantom) creature;
-            phantom.setFireTicks(0);
-            phantom.setShouldBurnInDay(false);
-        }
-
-        ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
-        if (config != null) {
-            creature.setMaxHealth(config.getHealth());
-            creature.setHealth(config.getHealth());
-            creature.setAI(false);
-            creature.setGravity(false);
-            creature.setInvulnerable(flight.isInvulnerable());
-            creature.setSilent(config.isSilent());
-            creature.setCollidable(false);
-
-            AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
-            if (scaleAttr != null) {
-                scaleAttr.setBaseValue(config.getScale());
-                if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
-                }
-            }
-
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] Creature config - Health: " + config.getHealth() + 
-                    ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale() + ", Silent: " + config.isSilent());
-            }
-        }
-
-        creature.addPassenger(player);
-
-        FlightSession session = new FlightSession(player, flight, creature);
-        activeSessions.put(player.getUniqueId(), session);
-
-        maceProtection.add(player.getUniqueId());
-
-        session.setCurrentWaypointIndex(1);
-        calculateMovement(session);
-
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            moveCreature(session);
-        }, 1L, 1L);
-
-        session.setMovementTask(task);
-
-        String message = plugin.getMessagesManager().getPrefixedMessage("flight_started");
+        String message = plugin.getMessagesManager().getPrefixedMessage("payment_success", 
+            "cost", plugin.getEconomyManager().formatAmount(flight.getCost()));
         if (message != null) player.sendMessage(message);
 
         if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
+            plugin.getLogger().info("[DEBUG] Charged " + flight.getCost() + " to player " + player.getName());
         }
     }
+
+    playSound(player, player.getLocation(), "start");
+    player.getWorld().spawnParticle(Particle.GUST, player.getLocation(), 1);
+
+    Waypoint firstWP = flight.getWaypoints().get(0);
+    Location startLoc = firstWP.getAsLocation();
+    player.teleport(startLoc);
+
+    if (plugin.getConfigManager().isDebugEnabled()) {
+        plugin.getLogger().info("[DEBUG] Teleported player to first waypoint: " + startLoc);
+    }
+
+    Entity entity = player.getWorld().spawnEntity(startLoc, flight.getCreature());
+
+    if (!(entity instanceof LivingEntity)) {
+        entity.remove();
+        activeSessions.remove(player.getUniqueId()); // Remover sesión temporal
+        String message = plugin.getMessagesManager().getPrefixedMessage("error_generic");
+        if (message != null) player.sendMessage(message);
+        return;
+    }
+
+    LivingEntity creature = (LivingEntity) entity;
+
+    if (creature instanceof Phantom) {
+        Phantom phantom = (Phantom) creature;
+        phantom.setFireTicks(0);
+        phantom.setShouldBurnInDay(false);
+    }
+
+    ConfigManager.CreatureConfig config = plugin.getConfigManager().getCreatureConfig(flight.getCreature());
+    if (config != null) {
+        creature.setMaxHealth(config.getHealth());
+        creature.setHealth(config.getHealth());
+        creature.setAI(false);
+        creature.setGravity(false);
+        creature.setInvulnerable(flight.isInvulnerable());
+        creature.setSilent(config.isSilent());
+        creature.setCollidable(false);
+
+        AttributeInstance scaleAttr = creature.getAttribute(Attribute.SCALE);
+        if (scaleAttr != null) {
+            scaleAttr.setBaseValue(config.getScale());
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Set creature scale to: " + config.getScale());
+            }
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Creature config - Health: " + config.getHealth() + 
+                ", Speed: " + config.getSpeed() + ", Scale: " + config.getScale() + ", Silent: " + config.isSilent());
+        }
+    }
+
+    creature.addPassenger(player);
+
+    // Actualizar sesión temporal con la entidad real
+    FlightSession session = new FlightSession(player, flight, creature);
+    activeSessions.put(player.getUniqueId(), session);
+
+    maceProtection.add(player.getUniqueId());
+
+    session.setCurrentWaypointIndex(1);
+    calculateMovement(session);
+
+    BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        moveCreature(session);
+    }, 1L, 1L);
+
+    session.setMovementTask(task);
+
+    String message = plugin.getMessagesManager().getPrefixedMessage("flight_started");
+    if (message != null) player.sendMessage(message);
+
+    if (plugin.getConfigManager().isDebugEnabled()) {
+        plugin.getLogger().info("[DEBUG] Flight started successfully. Total waypoints: " + flight.getWaypoints().size());
+    }
+}
 
     private void calculateMovement(FlightSession session) {
         Flight flight = session.getFlight();
