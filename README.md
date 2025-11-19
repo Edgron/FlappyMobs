@@ -4,9 +4,11 @@ Sistema avanzado de vuelos con criaturas para **Minecraft 1.21+ / Paper 1.21.10+
 
 ## ✨ Características
 - Rutas con waypoints personalizables
-- 8 criaturas voladoras con **scale completamente funcional**
-- Todas las criaturas pueden cambiar de tamaño y velocidad
+- 7 criaturas voladoras configurables
+- PHANTOM, GHAST, BLAZE, BEE, PARROT, VEX, ALLAY
+- Las criaturas pueden cambiar de tamaño y velocidad
 - Paracaídas configurable al desmontar
+- Anti Enderpearl configurable
 - Economía Vault integrada
 - Carteles `[FlappyMobs]` para vuelos automatizados configurables
 - Mensajes configurables
@@ -55,17 +57,6 @@ general:
 
 ### Carteles
 Pon `[FlappyMobs]` en línea 1, nombre del vuelo en línea 2.
-
-## 🦅 Criaturas con Scale
-Todas funcionan con Paper 1.21+:
-- ENDER_DRAGON ✓
-- PHANTOM ✓
-- GHAST ✓
-- BLAZE ✓
-- BEE ✓
-- PARROT ✓
-- VEX ✓
-- ALLAY ✓
 
 ## 🔐 Permisos
 
